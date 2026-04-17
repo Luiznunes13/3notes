@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3Notes.AI — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background: #0f172a; color: #f1f5f9; }
+    .card { background: #1e293b; border-radius: 12px; }
+    .badge { display:inline-block; padding:2px 10px; border-radius:9999px; font-size:.75rem; font-weight:700; }
+    .badge-critico { background:#dc2626; color:#fff; }
+    .badge-alto { background:#ea580c; color:#fff; }
+    .badge-medio { background:#ca8a04; color:#fff; }
+    .badge-baixo { background:#16a34a; color:#fff; }
+    .nav-item { cursor:pointer; padding:10px 16px; border-radius:10px; display:flex; align-items:center; gap:10px; transition:.15s; }
+    .nav-item:hover,.nav-item.active { background:#334155; }
+    .modal-bg { background:rgba(0,0,0,.6); }
+    @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .critical-blink { animation: pulse-ring 1s infinite; }
+    .tag-badge { display:inline-block; background:#1e3a5f; color:#93c5fd; border-radius:9999px; padding:2px 8px; font-size:.7rem; font-weight:500; }
+    .md-preview-modal { font-family:'Courier New',monospace; background:#1e1e2e; color:#cdd6f4; border-radius:8px; padding:12px; font-size:.78rem; line-height:1.5; white-space:pre-wrap; max-height:300px; overflow-y:auto; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+<!-- Sidebar -->
+<aside class="w-56 min-h-screen bg-[#1e293b] flex flex-col p-4 gap-2 flex-shrink-0">
+  <div class="mb-4">
+    <h1 class="text-xl font-bold text-white">3Notes.AI</h1>
+    <p class="text-xs text-slate-400">Dashboard técnico</p>
+  </div>
+  <nav class="flex flex-col gap-1">
+    <div class="nav-item active" onclick="showSection('fila')" id="nav-fila">
+      <span>📋</span> Fila
+    </div>
+    <div class="nav-item" onclick="showSection('agenda')" id="nav-agenda">
+      <span>📅</span> Agenda
+    </div>
+    <div class="nav-item" onclick="showSection('equipamentos')" id="nav-equipamentos">
+      <span>🔧</span> Equipamentos
+    </div>
+    <div class="nav-item" onclick="showSection('metricas')" id="nav-metricas">
+      <span>📊</span> Métricas
+    </div>
+    <div class="nav-item" onclick="showSection('knowledge')" id="nav-knowledge">
+      <span>📚</span> Knowledge Base
+    </div>
+  </nav>
+</aside>
+
+<!-- Main -->
+<main class="flex-1 p-6 overflow-auto">
+
+  <!-- FILA -->
+  <section id="sec-fila">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold">Fila de chamados</h2>
+      <button onclick="carregarFila()" class="text-sm text-blue-400 hover:text-blue-300">↻ Atualizar</button>
+    </div>
+    <div class="card overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-slate-400 border-b border-slate-700">
+            <th class="p-3 text-left">#</th>
+            <th class="p-3 text-left">Equipamento</th>
+            <th class="p-3 text-left">Setor</th>
+            <th class="p-3 text-left">Criticidade</th>
+            <th class="p-3 text-left">Aberto há</th>
+            <th class="p-3 text-left">Status</th>
+            <th class="p-3 text-left"></th>
+          </tr>
+        </thead>
+        <tbody id="tabela-fila"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- AGENDA -->
+  <section id="sec-agenda" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold">Agenda preventiva</h2>
+      <div class="flex gap-2 items-center">
+        <button onclick="mudarMes(-1)" class="text-slate-300 hover:text-white text-lg px-2">←</button>
+        <span id="label-mes" class="text-slate-300 font-medium w-28 text-center"></span>
+        <button onclick="mudarMes(1)" class="text-slate-300 hover:text-white text-lg px-2">→</button>
+      </div>
+    </div>
+    <div class="card p-4 mb-4">
+      <div id="grid-calendario" class="grid grid-cols-7 gap-1 text-center text-xs text-slate-400 mb-2">
+        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+      </div>
+      <div id="dias-calendario" class="grid grid-cols-7 gap-1"></div>
+    </div>
+    <div id="lista-dia" class="card p-4 hidden">
+      <h3 id="titulo-dia" class="font-semibold mb-3 text-slate-200"></h3>
+      <div id="manutencoes-dia"></div>
+    </div>
+  </section>
+
+  <!-- EQUIPAMENTOS -->
+  <section id="sec-equipamentos" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold">Equipamentos</h2>
+      <button onclick="abrirModalNovoEq()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">+ Novo equipamento</button>
+    </div>
+    <div class="card p-4 mb-4">
+      <input id="busca-eq" type="text" placeholder="Buscar por patrimônio, descrição ou setor..."
+        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        oninput="filtrarEquipamentos()" />
+    </div>
+    <div class="card overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-slate-400 border-b border-slate-700">
+            <th class="p-3 text-left">Patrimônio</th>
+            <th class="p-3 text-left">Descrição</th>
+            <th class="p-3 text-left">Setor</th>
+            <th class="p-3 text-left">Tipo</th>
+            <th class="p-3 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-equipamentos"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- MÉTRICAS -->
+  <section id="sec-metricas" class="hidden">
+    <h2 class="text-xl font-bold mb-4">Métricas</h2>
+    <div id="cards-metricas" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="card p-4"><canvas id="chart-setor"></canvas></div>
+      <div class="card p-4"><canvas id="chart-criticidade"></canvas></div>
+    </div>
+    <div class="card p-4">
+      <h3 class="font-semibold mb-3 text-slate-300">Top equipamentos com mais chamados</h3>
+      <table class="w-full text-sm">
+        <thead><tr class="text-slate-400 border-b border-slate-700">
+          <th class="p-2 text-left">Patrimônio</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-right">Chamados</th>
+        </tr></thead>
+        <tbody id="tabela-top-eq"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- KNOWLEDGE BASE -->
+  <section id="sec-knowledge" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold">📚 Knowledge Base</h2>
+      <button onclick="abrirModalUpload()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">+ Adicionar fonte</button>
+    </div>
+
+    <!-- Busca semântica -->
+    <div class="card p-4 mb-4">
+      <label class="block text-xs text-slate-400 font-semibold uppercase mb-2">Busca semântica</label>
+      <div class="flex gap-2">
+        <input id="busca-knowledge" type="text" placeholder="Ex: bomba de infusão alarme oclusão..."
+          class="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button onclick="buscarKnowledge()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Buscar</button>
+      </div>
+      <div id="resultados-busca" class="mt-3 flex flex-col gap-2"></div>
+    </div>
+
+    <!-- Fontes por tipo -->
+    <div id="fontes-conhecimento" class="flex flex-col gap-4"></div>
+  </section>
+
+</main>
+
+<!-- Modal Detalhes Chamado -->
+<div id="modal-chamado" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
+  <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-bold" id="modal-titulo"></h3>
+      <button onclick="fecharModal('modal-chamado')" class="text-slate-400 hover:text-white text-xl">✕</button>
+    </div>
+    <div id="modal-chamado-body"></div>
+
+    <!-- Link ver nota .md -->
+    <div id="nota-md-link" class="hidden mt-3">
+      <button onclick="verNotaMd()" class="text-blue-400 hover:text-blue-300 text-sm underline">📄 Ver nota .md</button>
+    </div>
+
+    <div class="flex gap-2 mt-4 flex-wrap">
+      <button id="btn-iniciar-atend" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Iniciar atendimento</button>
+      <div class="flex gap-1 items-center">
+        <select id="select-criticidade" class="bg-slate-700 border border-slate-600 text-sm rounded-xl px-3 py-2 focus:outline-none">
+          <option value="">Confirmar criticidade...</option>
+          <option value="critico">Crítico</option>
+          <option value="alto">Alto</option>
+          <option value="medio">Médio</option>
+          <option value="baixo">Baixo</option>
+        </select>
+        <button id="btn-confirmar-crit" class="bg-orange-600 hover:bg-orange-500 text-white text-sm px-3 py-2 rounded-xl">OK</button>
+      </div>
+    </div>
+    <div class="mt-3">
+      <input id="input-tecnico-resolucao" type="text" placeholder="Nome do técnico *"
+        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-sm mb-2 focus:outline-none" />
+      <textarea id="textarea-resolucao" placeholder="Descreva a resolução..." rows="3"
+        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none resize-none"></textarea>
+      <button id="btn-resolver" class="mt-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Registrar resolução e salvar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ver nota .md -->
+<div id="modal-md" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
+  <div class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-bold">Nota .md</h3>
+      <button onclick="fecharModal('modal-md')" class="text-slate-400 hover:text-white text-xl">✕</button>
+    </div>
+    <div id="conteudo-md-modal" class="md-preview-modal"></div>
+  </div>
+</div>
+
+<!-- Modal Novo Equipamento -->
+<div id="modal-novo-eq" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-bold">Novo equipamento</h3>
+      <button onclick="fecharModal('modal-novo-eq')" class="text-slate-400 hover:text-white text-xl">✕</button>
+    </div>
+    <form id="form-novo-eq" class="flex flex-col gap-3">
+      <input name="patrimonio" placeholder="Patrimônio *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input name="descricao" placeholder="Descrição *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input name="tipo" placeholder="Tipo (ex: Ventilador mecânico) *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input name="setor" placeholder="Setor *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input name="localizacao" placeholder="Localização *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input name="intervalo_preventivo_dias" type="number" placeholder="Intervalo preventivo (dias)" class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-xl transition">Salvar</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Executar Manutenção -->
+<div id="modal-executar" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
+  <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-bold">Executar manutenção preventiva</h3>
+      <button onclick="fecharModal('modal-executar')" class="text-slate-400 hover:text-white text-xl">✕</button>
+    </div>
+    <div id="checklist-content" class="mb-4 text-sm text-slate-300"></div>
+    <input id="input-tecnico" placeholder="Nome do técnico *" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm mb-3 focus:outline-none" />
+    <textarea id="input-obs" placeholder="Observações" rows="3" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm resize-none mb-3 focus:outline-none"></textarea>
+    <button id="btn-confirmar-exec" class="w-full bg-green-600 hover:bg-green-500 text-white font-medium py-2 rounded-xl transition">Confirmar execução</button>
+  </div>
+</div>
+
+<!-- Modal Upload Knowledge -->
+<div id="modal-upload" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-bold">Adicionar fonte de conhecimento</h3>
+      <button onclick="fecharModal('modal-upload')" class="text-slate-400 hover:text-white text-xl">✕</button>
+    </div>
+    <form id="form-upload" class="flex flex-col gap-3">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Arquivo (.md, .txt, .pdf)</label>
+        <input type="file" name="file" accept=".md,.txt,.pdf" required
+          class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Tipo</label>
+        <select name="tipo" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none">
+          <option value="manual">Manual técnico</option>
+          <option value="protocolo">Protocolo hospitalar</option>
+          <option value="documento">Documento geral</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Tags (separadas por vírgula)</label>
+        <input type="text" name="tags_input" placeholder="ex: autoclave, esterilizacao, centro-cirurgico"
+          class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none" />
+      </div>
+      <button type="submit" id="btn-upload-submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-xl transition">Indexar na base de conhecimento</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  let todosEquipamentos = [];
+  let currentChamadoId = null;
+  let currentChamadoMdPath = null;
+  let currentAgendaId = null;
+  let mesAtual = new Date();
+  let agendaData = [];
+  let chartSetor = null, chartCrit = null;
+
+  // ---- Navegação ----
+  function showSection(name) {
+    ['fila','agenda','equipamentos','metricas','knowledge'].forEach(s => {
+      document.getElementById(`sec-${s}`).classList.toggle('hidden', s !== name);
+      document.getElementById(`nav-${s}`).classList.toggle('active', s === name);
+    });
+    if (name === 'fila') carregarFila();
+    if (name === 'agenda') carregarAgenda();
+    if (name === 'equipamentos') carregarEquipamentos();
+    if (name === 'metricas') carregarMetricas();
+    if (name === 'knowledge') carregarKnowledge();
+  }
+
+  function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // ---- Utilitários ----
+  function tempoAberto(criadoEm) {
+    const diff = (Date.now() - new Date(criadoEm + 'Z').getTime()) / 1000;
+    if (diff < 3600) return `${Math.floor(diff/60)}min`;
+    return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}min`;
+  }
+
+  function badgeHtml(nivel) {
+    const labels = { critico:'Crítico', alto:'Alto', medio:'Médio', baixo:'Baixo' };
+    return `<span class="badge badge-${nivel||'baixo'}">${labels[nivel]||nivel||'—'}</span>`;
+  }
+
+  // ---- FILA ----
+  async function carregarFila() {
+    const resp = await fetch(`${API}/api/chamados?status=aberto,em_andamento`);
+    const chamados = await resp.json();
+    const tbody = document.getElementById('tabela-fila');
+    if (chamados.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">Nenhum chamado aberto.</td></tr>';
+      return;
+    }
+    const agora = Date.now();
+    tbody.innerHTML = chamados.map(c => {
+      const nivel = c.criticidade_confirmada || c.criticidade_sugerida || 'baixo';
+      const horas = (agora - new Date(c.criado_em + 'Z').getTime()) / 3600000;
+      const critico = nivel === 'critico' && horas > 1;
+      return `<tr class="border-b border-slate-700 hover:bg-slate-800 ${critico ? 'critical-blink' : ''}">
+        <td class="p-3 text-slate-300">#${c.id}</td>
+        <td class="p-3 font-medium">${c.descricao.substring(0, 40)}...</td>
+        <td class="p-3 text-slate-400">${c.setor_reportador}</td>
+        <td class="p-3">${badgeHtml(nivel)}</td>
+        <td class="p-3 text-slate-400">${tempoAberto(c.criado_em)}</td>
+        <td class="p-3 text-slate-400">${c.status}</td>
+        <td class="p-3"><button onclick="abrirChamado(${c.id})" class="text-blue-400 hover:text-blue-300 text-sm">Ver detalhes</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function abrirChamado(id) {
+    currentChamadoId = id;
+    currentChamadoMdPath = null;
+    const resp = await fetch(`${API}/api/chamados/${id}`);
+    const c = await resp.json();
+    document.getElementById('modal-titulo').textContent = `Chamado #${c.id}`;
+    const nivel = c.criticidade_confirmada || c.criticidade_sugerida;
+    document.getElementById('modal-chamado-body').innerHTML = `
+      <div class="flex gap-2 mb-2">${badgeHtml(nivel)}<span class="text-slate-400 text-sm">${c.status}</span></div>
+      <p class="text-sm text-slate-300 mb-3">${c.descricao}</p>
+      <p class="text-xs text-slate-500">Reportado por ${c.aberto_por} · ${c.setor_reportador} · ${tempoAberto(c.criado_em)} atrás</p>
+      ${c.resolucao ? `<div class="mt-3 bg-green-900 rounded-xl p-3"><p class="text-xs text-green-300 font-semibold">RESOLUÇÃO</p><p class="text-sm text-green-200 mt-1">${c.resolucao}</p></div>` : ''}
+      ${c.historico && c.historico.length ? `
+        <div class="mt-3 border-t border-slate-700 pt-3">
+          <p class="text-xs text-slate-400 mb-2 font-medium">HISTÓRICO</p>
+          ${c.historico.map(h => `<p class="text-xs text-slate-500">${h.status_anterior} → ${h.status_novo} (${h.alterado_por})</p>`).join('')}
+        </div>` : ''}
+    `;
+    // Show .md link if available
+    const notaLink = document.getElementById('nota-md-link');
+    if (c.md_path) {
+      currentChamadoMdPath = c.md_path;
+      notaLink.classList.remove('hidden');
+    } else {
+      notaLink.classList.add('hidden');
+    }
+    document.getElementById('modal-chamado').classList.remove('hidden');
+  }
+
+  async function verNotaMd() {
+    if (!currentChamadoId) return;
+    // Fetch the chamado again to get md_path
+    const resp = await fetch(`${API}/api/chamados/${currentChamadoId}`);
+    const c = await resp.json();
+    if (!c.md_path) { alert('Nota .md não disponível para este chamado.'); return; }
+    // We can't read files directly from browser; show path info
+    document.getElementById('conteudo-md-modal').textContent =
+      `Nota salva em:\n${c.md_path}\n\nAbra o arquivo no explorador de arquivos para visualizar o conteúdo completo.`;
+    document.getElementById('modal-md').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-iniciar-atend').addEventListener('click', async () => {
+    if (!currentChamadoId) return;
+    await fetch(`${API}/api/chamados/${currentChamadoId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'em_andamento', alterado_por: 'técnico' }),
+    });
+    fecharModal('modal-chamado');
+    carregarFila();
+  });
+
+  document.getElementById('btn-confirmar-crit').addEventListener('click', async () => {
+    const crit = document.getElementById('select-criticidade').value;
+    if (!crit || !currentChamadoId) return;
+    await fetch(`${API}/api/chamados/${currentChamadoId}/criticidade`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ criticidade_confirmada: crit }),
+    });
+    fecharModal('modal-chamado');
+    carregarFila();
+  });
+
+  document.getElementById('btn-resolver').addEventListener('click', async () => {
+    const res = document.getElementById('textarea-resolucao').value.trim();
+    const tecnico = document.getElementById('input-tecnico-resolucao').value.trim() || 'técnico';
+    if (!currentChamadoId) return;
+    if (!res) { alert('Informe a resolução.'); return; }
+    await fetch(`${API}/api/chamados/${currentChamadoId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolvido', alterado_por: tecnico, resolucao: res }),
+    });
+    fecharModal('modal-chamado');
+    carregarFila();
+  });
+
+  // ---- AGENDA ----
+  function labelMes(d) {
+    return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  function mudarMes(delta) {
+    mesAtual.setMonth(mesAtual.getMonth() + delta);
+    carregarAgenda();
+  }
+
+  async function carregarAgenda() {
+    const ano = mesAtual.getFullYear();
+    const mes = String(mesAtual.getMonth() + 1).padStart(2, '0');
+    document.getElementById('label-mes').textContent = labelMes(mesAtual);
+    const resp = await fetch(`${API}/api/agenda?mes=${ano}-${mes}`);
+    agendaData = await resp.json();
+    renderCalendario(ano, mesAtual.getMonth());
+    document.getElementById('lista-dia').classList.add('hidden');
+  }
+
+  function renderCalendario(ano, mes) {
+    const container = document.getElementById('dias-calendario');
+    const primeiro = new Date(ano, mes, 1).getDay();
+    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    const porDia = {};
+    agendaData.forEach(a => {
+      const d = a.data_programada;
+      if (!porDia[d]) porDia[d] = [];
+      porDia[d].push(a);
+    });
+    let html = '';
+    for (let i = 0; i < primeiro; i++) html += '<div></div>';
+    for (let d = 1; d <= diasNoMes; d++) {
+      const key = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const count = (porDia[key] || []).length;
+      const hoje = new Date().getDate() === d && new Date().getMonth() === mes && new Date().getFullYear() === ano;
+      html += `<div onclick="selecionarDia('${key}')"
+        class="cursor-pointer rounded-lg p-2 text-center text-sm hover:bg-slate-700 transition ${hoje ? 'bg-blue-900 font-bold' : ''}">
+        ${d}${count ? `<div class="w-1.5 h-1.5 bg-blue-400 rounded-full mx-auto mt-0.5"></div>` : ''}
+      </div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function selecionarDia(key) {
+    const lista = document.getElementById('lista-dia');
+    const manutencoes = agendaData.filter(a => a.data_programada === key);
+    document.getElementById('titulo-dia').textContent = `Manutenções — ${key}`;
+    if (manutencoes.length === 0) {
+      document.getElementById('manutencoes-dia').innerHTML = '<p class="text-slate-500 text-sm">Nenhuma manutenção neste dia.</p>';
+    } else {
+      document.getElementById('manutencoes-dia').innerHTML = manutencoes.map(a => `
+        <div class="flex items-center justify-between py-2 border-b border-slate-700">
+          <div>
+            <p class="font-medium text-sm">Agenda #${a.id}</p>
+            <p class="text-xs text-slate-400">${a.status}</p>
+          </div>
+          ${a.status === 'pendente' ? `<button onclick="abrirExecutar(${a.id})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition">Executar</button>` : '<span class="text-green-400 text-xs">✓ Executado</span>'}
+        </div>`).join('');
+    }
+    lista.classList.remove('hidden');
+  }
+
+  async function abrirExecutar(id) {
+    currentAgendaId = id;
+    document.getElementById('checklist-content').innerHTML = '<p class="text-slate-400 italic">Gerando checklist com IA...</p>';
+    document.getElementById('input-tecnico').value = '';
+    document.getElementById('input-obs').value = '';
+    document.getElementById('modal-executar').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-confirmar-exec').addEventListener('click', async () => {
+    const tecnico = document.getElementById('input-tecnico').value.trim();
+    if (!tecnico) { alert('Informe o nome do técnico.'); return; }
+    await fetch(`${API}/api/agenda/${currentAgendaId}/executar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tecnico, observacoes: document.getElementById('input-obs').value }),
+    });
+    fecharModal('modal-executar');
+    carregarAgenda();
+  });
+
+  // ---- EQUIPAMENTOS ----
+  async function carregarEquipamentos() {
+    const resp = await fetch(`${API}/api/equipamentos`);
+    todosEquipamentos = await resp.json();
+    renderEquipamentos(todosEquipamentos);
+  }
+
+  function renderEquipamentos(lista) {
+    const tbody = document.getElementById('tabela-equipamentos');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum equipamento cadastrado.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(e => `
+      <tr class="border-b border-slate-700 hover:bg-slate-800">
+        <td class="p-3 font-mono text-blue-400">${e.patrimonio}</td>
+        <td class="p-3">${e.descricao}</td>
+        <td class="p-3 text-slate-400">${e.setor}</td>
+        <td class="p-3 text-slate-400">${e.tipo}</td>
+        <td class="p-3">${e.ativo ? '<span class="text-green-400 text-xs">Ativo</span>' : '<span class="text-slate-500 text-xs">Inativo</span>'}</td>
+      </tr>`).join('');
+  }
+
+  function filtrarEquipamentos() {
+    const q = document.getElementById('busca-eq').value.toLowerCase();
+    renderEquipamentos(todosEquipamentos.filter(e =>
+      e.patrimonio.toLowerCase().includes(q) ||
+      e.descricao.toLowerCase().includes(q) ||
+      e.setor.toLowerCase().includes(q)
+    ));
+  }
+
+  function abrirModalNovoEq() {
+    document.getElementById('form-novo-eq').reset();
+    document.getElementById('modal-novo-eq').classList.remove('hidden');
+  }
+
+  document.getElementById('form-novo-eq').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    if (f.intervalo_preventivo_dias) f.intervalo_preventivo_dias = parseInt(f.intervalo_preventivo_dias);
+    else delete f.intervalo_preventivo_dias;
+    await fetch(`${API}/api/equipamentos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(f),
+    });
+    fecharModal('modal-novo-eq');
+    carregarEquipamentos();
+  });
+
+  // ---- MÉTRICAS ----
+  async function carregarMetricas() {
+    const resp = await fetch(`${API}/api/metricas`);
+    const m = await resp.json();
+
+    document.getElementById('cards-metricas').innerHTML = `
+      <div class="card p-5 text-center"><p class="text-3xl font-bold text-red-400">${m.chamados_abertos}</p><p class="text-slate-400 text-sm mt-1">Chamados abertos</p></div>
+      <div class="card p-5 text-center"><p class="text-3xl font-bold text-blue-400">${m.chamados_mes}</p><p class="text-slate-400 text-sm mt-1">Chamados este mês</p></div>
+      <div class="card p-5 text-center"><p class="text-3xl font-bold text-green-400">${m.sla_medio_horas}h</p><p class="text-slate-400 text-sm mt-1">SLA médio</p></div>
+      <div class="card p-5 text-center"><p class="text-3xl font-bold text-purple-400">${m.fontes_conhecimento ?? 0}</p><p class="text-slate-400 text-sm mt-1">Fontes de conhecimento</p></div>
+    `;
+
+    if (chartSetor) chartSetor.destroy();
+    if (chartCrit) chartCrit.destroy();
+
+    const ctxSetor = document.getElementById('chart-setor').getContext('2d');
+    chartSetor = new Chart(ctxSetor, {
+      type: 'bar',
+      data: {
+        labels: m.por_setor.map(x => x.setor),
+        datasets: [{ label: 'Chamados', data: m.por_setor.map(x => x.total), backgroundColor: '#3b82f6' }],
+      },
+      options: { plugins: { legend: { display: false }, title: { display: true, text: 'Chamados por setor', color: '#94a3b8' } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } },
+    });
+
+    const cores = { critico: '#dc2626', alto: '#ea580c', medio: '#ca8a04', baixo: '#16a34a', desconhecido: '#64748b' };
+    const ctxCrit = document.getElementById('chart-criticidade').getContext('2d');
+    chartCrit = new Chart(ctxCrit, {
+      type: 'pie',
+      data: {
+        labels: m.por_criticidade.map(x => x.nivel),
+        datasets: [{ data: m.por_criticidade.map(x => x.total), backgroundColor: m.por_criticidade.map(x => cores[x.nivel] || '#64748b') }],
+      },
+      options: { plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: 'Por criticidade', color: '#94a3b8' } } },
+    });
+
+    document.getElementById('tabela-top-eq').innerHTML = m.top_equipamentos.map(e => `
+      <tr class="border-b border-slate-700">
+        <td class="p-2 font-mono text-blue-400">${e.patrimonio}</td>
+        <td class="p-2 text-slate-300">${e.descricao}</td>
+        <td class="p-2 text-right text-slate-300">${e.total_chamados}</td>
+      </tr>`).join('');
+  }
+
+  // ---- KNOWLEDGE BASE ----
+  async function carregarKnowledge() {
+    const resp = await fetch(`${API}/api/knowledge/fontes`);
+    const fontes = await resp.json();
+
+    const tipos = {
+      chamado_resolvido: 'Chamados Resolvidos',
+      chamado_aberto: 'Chamados Abertos',
+      manual: 'Manuais Técnicos',
+      protocolo: 'Protocolos Hospitalares',
+      documento: 'Documentos Gerais',
+    };
+
+    const grupos = {};
+    fontes.forEach(f => {
+      const g = f.tipo;
+      if (!grupos[g]) grupos[g] = [];
+      grupos[g].push(f);
+    });
+
+    const container = document.getElementById('fontes-conhecimento');
+    if (Object.keys(grupos).length === 0) {
+      container.innerHTML = '<p class="text-slate-500 text-sm">Nenhuma fonte indexada ainda. Adicione manuais, protocolos ou resolva chamados para popular a base.</p>';
+      return;
+    }
+
+    container.innerHTML = Object.entries(grupos).map(([tipo, lista]) => `
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-slate-200">${tipos[tipo] || tipo} <span class="text-slate-500 text-sm">(${lista.length})</span></h3>
+        </div>
+        <div class="flex flex-col gap-2">
+          ${lista.map(f => `
+            <div class="flex items-start justify-between border-b border-slate-700 pb-2">
+              <div>
+                <p class="text-sm font-medium text-slate-200">${f.titulo}</p>
+                <p class="text-xs text-slate-500 mt-0.5">${f.indexado_em ? new Date(f.indexado_em).toLocaleDateString('pt-BR') : ''}</p>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  ${(Array.isArray(f.tags) ? f.tags : []).map(t => `<span class="tag-badge">${t}</span>`).join('')}
+                </div>
+              </div>
+              <button onclick="removerFonte(${f.id})" class="text-slate-500 hover:text-red-400 text-xs ml-3 mt-1">✕</button>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  async function buscarKnowledge() {
+    const q = document.getElementById('busca-knowledge').value.trim();
+    if (!q) return;
+    const resultadosEl = document.getElementById('resultados-busca');
+    resultadosEl.innerHTML = '<p class="text-slate-400 text-sm italic">Buscando...</p>';
+    try {
+      const resp = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(q)}`);
+      const resultados = await resp.json();
+      if (!resultados.length) {
+        resultadosEl.innerHTML = '<p class="text-slate-500 text-sm">Nenhum resultado encontrado.</p>';
+        return;
+      }
+      resultadosEl.innerHTML = resultados.map((r, i) => `
+        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+          <p class="text-xs text-blue-400 font-semibold mb-1">[${i+1}] ${r.fonte}</p>
+          <p class="text-sm text-slate-300">${r.trecho.substring(0, 300)}${r.trecho.length > 300 ? '...' : ''}</p>
+        </div>`).join('');
+    } catch {
+      resultadosEl.innerHTML = '<p class="text-red-400 text-sm">Erro ao buscar. Verifique se o Ollama está rodando.</p>';
+    }
+  }
+
+  document.getElementById('busca-knowledge').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') buscarKnowledge();
+  });
+
+  async function removerFonte(id) {
+    if (!confirm('Remover esta fonte da base de conhecimento?')) return;
+    await fetch(`${API}/api/knowledge/fontes/${id}`, { method: 'DELETE' });
+    carregarKnowledge();
+  }
+
+  function abrirModalUpload() {
+    document.getElementById('form-upload').reset();
+    document.getElementById('modal-upload').classList.remove('hidden');
+  }
+
+  document.getElementById('form-upload').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-upload-submit');
+    btn.disabled = true;
+    btn.textContent = 'Indexando...';
+
+    const formData = new FormData(e.target);
+    // Parse tags from text input to JSON array
+    const tagsInput = formData.get('tags_input') || '';
+    const tagsArray = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    formData.delete('tags_input');
+    formData.set('tags', JSON.stringify(tagsArray));
+
+    try {
+      const resp = await fetch(`${API}/api/knowledge/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        alert(`Erro: ${err.detail || 'Falha no upload'}`);
+        return;
+      }
+      fecharModal('modal-upload');
+      carregarKnowledge();
+    } catch {
+      alert('Erro ao enviar arquivo. Tente novamente.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Indexar na base de conhecimento';
+    }
+  });
+
+  // ---- Init ----
+  carregarFila();
+  setInterval(carregarFila, 30000);
+</script>
+</body>
+</html>

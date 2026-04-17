@@ -1,0 +1,28 @@
+# Database
+3notes.db
+medmanu.db
+
+# Generated knowledge base (re-created by seed_demo.py)
+knowledge/chamados/
+knowledge/manuais/
+knowledge/protocolos/
+
+# ChromaDB persistent data (re-created by seed_demo.py)
+chromadb/
+
+# Environment
+.env
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/

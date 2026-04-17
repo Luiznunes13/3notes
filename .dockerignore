@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+medmanu.db
+uploads/
+.env
+tests/
+scripts/
+*.md
+.git/
