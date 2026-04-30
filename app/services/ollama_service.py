@@ -5,6 +5,28 @@ from fastapi import HTTPException
 
 load_dotenv()
 
+SYSTEM_PROMPT_COPILOT = """Você é o copiloto de manutenção hospitalar do 3Notes.AI.
+
+FUNÇÃO: Responder dúvidas sobre equipamentos médicos, sugerir criticidade e citar casos resolvidos da base de conhecimento.
+
+REGRAS:
+- Seja CONCISO. Máximo 3 parágrafos curtos.
+- Nunca conduza um fluxo de perguntas — apenas responda o que foi perguntado.
+- Se não encontrar nada relevante na base, diga explicitamente: "Não encontrei casos similares na base de conhecimento."
+
+CITAÇÃO OBRIGATÓRIA — siga este formato rigorosamente:
+- Sempre que usar informação do CONTEXTO RELEVANTE, cite a fonte entre colchetes imediatamente após a informação.
+- Para chamados resolvidos: use o ID exato entre colchetes, ex: [CHM-2026-0021]
+- Para documentos (manuais, protocolos): use o título entre colchetes, ex: [Boas Práticas — Dashboard]
+- Nunca afirme algo técnico sem citar a fonte.
+- Exemplo correto: "O alarme E05 indica obstrução do sensor de oclusão [CHM-2026-0003]. A solução foi limpeza com solução enzimática e recalibração em 150 mmHg."
+
+CRITICIDADE:
+- crítico: equipamento em uso direto com paciente, sem substituto disponível
+- alto: equipamento importante, substituto disponível
+- médio: equipamento de suporte, substituto disponível
+- baixo: equipamento auxiliar, baixo impacto clínico imediato"""
+
 SYSTEM_PROMPT_INTAKE = """Você é o assistente de manutenção do 3Notes.AI, sistema interno de um hospital.
 Seu trabalho é coletar informações sobre um problema em equipamento médico para abrir um chamado de manutenção.
 
@@ -59,14 +81,30 @@ class OllamaService:
         return self.fallback_model
 
     async def chat(self, messages: list[dict], system_prompt: str = SYSTEM_PROMPT_INTAKE) -> str:
-        # RAG: inject relevant context from knowledge base
+        _, payload = await self._build_chat_payload(messages, system_prompt, stream=False)
+        try:
+            async with httpx.AsyncClient(timeout=300) as client:
+                resp = await client.post(f"{self.base_url}/api/chat", json=payload)
+                resp.raise_for_status()
+                return resp.json()["message"]["content"]
+        except httpx.ConnectError:
+            raise HTTPException(status_code=503, detail="Serviço de IA indisponível. Verifique se o Ollama está rodando.")
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Erro ao comunicar com o modelo: {type(e).__name__}: {str(e)}")
+
+    async def _build_chat_payload(
+        self, messages: list[dict], system_prompt: str | None = None, stream: bool = False
+    ) -> tuple[str, dict]:
+        if system_prompt is None:
+            system_prompt = SYSTEM_PROMPT_INTAKE
+        """Build Ollama payload with RAG context injected. Returns (model, payload)."""
         rag_context = ""
         try:
             from app.services.rag_service import rag_service
             user_messages = [m for m in messages if m["role"] == "user"]
             if user_messages:
                 last_user_msg = user_messages[-1]["content"]
-                contextos = await rag_service.buscar_contexto(last_user_msg)
+                contextos = await rag_service.buscar_contexto(last_user_msg, n_resultados=2)
                 if contextos:
                     rag_context = (
                         "CONTEXTO RELEVANTE (base de conhecimento do hospital):\n"
@@ -75,25 +113,39 @@ class OllamaService:
                         + "\n─────────────────────────────────────────────────────\n\n"
                     )
         except Exception:
-            pass  # RAG failure is non-fatal
+            pass
 
         full_system = rag_context + system_prompt
-
         model = await self._get_active_model()
         payload = {
             "model": model,
             "messages": [{"role": "system", "content": full_system}] + messages,
-            "stream": False,
+            "stream": stream,
         }
+        return model, payload
+
+    async def chat_stream(self, messages: list[dict], system_prompt: str | None = None):
+        """Streaming chat — yields text chunks as they arrive from Ollama."""
+        import json as _json
+        _, payload = await self._build_chat_payload(messages, system_prompt, stream=True)
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
-                resp = await client.post(f"{self.base_url}/api/chat", json=payload)
-                resp.raise_for_status()
-                return resp.json()["message"]["content"]
-        except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Serviço de IA indisponível. Verifique se o Ollama está rodando.")
-        except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Erro ao comunicar com o modelo: {str(e)}")
+            async with httpx.AsyncClient(timeout=300) as client:
+                async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            chunk = _json.loads(line)
+                            token = chunk.get("message", {}).get("content", "")
+                            if token:
+                                yield token
+                            if chunk.get("done"):
+                                break
+                        except _json.JSONDecodeError:
+                            continue
+        except Exception:
+            return
 
     async def completar(self, prompt: str) -> str:
         """Single-turn completion (sem histórico) para geração de metadados."""
@@ -112,10 +164,11 @@ class OllamaService:
             return ""
 
     async def embed(self, texto: str) -> list[float]:
-        """Gera embedding via Ollama embed API."""
-        embed_model = os.getenv("THREENNOTES_EMBED_MODEL", "nomic-embed-text")
+        """Gera embedding via Ollama embed API. Trunca para EMBED_DIMS (Matryoshka)."""
+        from app.services.rag_service import EMBED_DIMS
+        embed_model = os.getenv("THREENNOTES_EMBED_MODEL", "qwen3-embedding:0.6b")
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
                     f"{self.base_url}/api/embed",
                     json={"model": embed_model, "input": texto},
@@ -124,7 +177,8 @@ class OllamaService:
                 data = resp.json()
                 embeddings = data.get("embeddings", [])
                 if embeddings:
-                    return embeddings[0]
+                    vec = embeddings[0]
+                    return vec[:EMBED_DIMS] if len(vec) > EMBED_DIMS else vec
         except Exception:
             pass
         return []

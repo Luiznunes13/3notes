@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3Notes.AI — Master</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; color: #e2e2e2; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0d0d0d; }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; flex-shrink: 0; background: #0d0d0d; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; padding: 18px 12px; }
+    .main { flex: 1; padding: 24px 32px; overflow-x: hidden; max-width: 1100px; }
+
+    .brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
+    .brand-logo { width:32px; height:32px; background:#7c3aed; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+    .brand-title { font-size:17px; font-weight:800; letter-spacing:-0.02em; color:#f0f0f0; }
+    .brand-badge { font-size:9px; font-weight:700; background:#1a0e38; color:#c4b5fd; border:1px solid #3b1d8a; border-radius:4px; padding:2px 6px; letter-spacing:0.08em; }
+
+    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:7px; font-size:13px; color:#888; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
+    .nav-item:hover { background:#161616; color:#ddd; }
+    .nav-item.active { background:#1a0e38; color:#c4b5fd; border:1px solid #3b1d8a; }
+
+    .page-title { font-size:22px; font-weight:800; color:#f0f0f0; letter-spacing:-0.02em; }
+    .page-sub { font-size:12px; color:#555; margin-top:2px; }
+
+    .card { background:#111; border:1px solid #1e1e1e; border-radius:10px; padding:18px; }
+    .card-tight { padding:14px; }
+
+    .sec-label { font-size:10px; font-weight:700; color:#444; letter-spacing:0.1em; text-transform:uppercase; }
+
+    /* ---- Badges ---- */
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600; }
+    .badge-critico { background:#3b0a0a; color:#fca5a5; border:1px solid #7f1d1d; }
+    .badge-alto    { background:#3b1506; color:#fdba74; border:1px solid #9a3412; }
+    .badge-medio   { background:#3b2a00; color:#fcd34d; border:1px solid #92400e; }
+    .badge-baixo   { background:#042f1a; color:#6ee7b7; border:1px solid #065f46; }
+    .badge-pending { background:#1a0e38; color:#c4b5fd; border:1px solid #3b1d8a; }
+    .badge-ok      { background:#042f1a; color:#6ee7b7; border:1px solid #065f46; }
+    .badge-status  { background:#181818; color:#888; border:1px solid #2a2a2a; }
+
+    /* ---- Inputs ---- */
+    .inp { background:#161616; border:1px solid #262626; color:#e2e2e2; border-radius:7px; padding:9px 13px; font-size:13px; outline:none; transition:border-color 0.15s, box-shadow 0.15s; width:100%; }
+    .inp:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.12); }
+    .inp::placeholder { color:#444; }
+    select.inp { cursor:pointer; }
+    select.inp option { background:#1a1a1a; }
+
+    /* ---- Buttons ---- */
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:all 0.15s; }
+    .btn-primary  { background:#7c3aed; color:#fff; border-color:#6d28d9; }
+    .btn-primary:hover { background:#6d28d9; }
+    .btn-ghost    { background:#161616; border-color:#2a2a2a; color:#aaa; }
+    .btn-ghost:hover { background:#1d1d1d; color:#ddd; border-color:#3a3a3a; }
+    .btn-success  { background:#065f46; color:#6ee7b7; border-color:#047857; }
+    .btn-success:hover { background:#047857; color:#fff; }
+    .btn-warn     { background:#3b2a00; color:#fcd34d; border-color:#92400e; }
+    .btn-warn:hover { background:#92400e; color:#fff; }
+    .btn-danger   { background:#3b0a0a; color:#fca5a5; border-color:#7f1d1d; }
+    .btn-danger:hover { background:#7f1d1d; color:#fff; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+
+    /* ---- MD preview ---- */
+    .md { font-family:'SF Mono','Fira Code',monospace; font-size:12px; line-height:1.75; background:#0d0d0d; border:1px solid #1e1e1e; border-radius:8px; padding:16px; color:#bbb; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow-y:auto; }
+
+    /* ---- Chamado row ---- */
+    .chamado-row { background:#111; border:1px solid #1e1e1e; border-left:3px solid #2a2a2a; border-radius:8px; padding:14px 16px; transition:border-color 0.15s; }
+    .chamado-row.pending { border-left-color:#7c3aed; }
+    .chamado-row.validated { border-left-color:#16a34a; }
+
+    /* ---- Expand area ---- */
+    .expand-body { display:none; margin-top:14px; border-top:1px solid #1a1a1a; padding-top:14px; }
+    .expand-body.open { display:block; }
+
+    /* ---- Login overlay ---- */
+    #login-overlay {
+      position:fixed; inset:0; background:#0a0a0a;
+      display:flex; align-items:center; justify-content:center; z-index:100;
+    }
+    .login-box { background:#111; border:1px solid #1e1e1e; border-radius:14px; padding:36px; width:340px; text-align:center; }
+
+    /* ---- Animations ---- */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation:fadeUp 0.25s ease-out; }
+
+    hr.div { border:none; border-top:1px solid #1e1e1e; margin:18px 0; }
+    .hidden { display:none !important; }
+
+    /* ---- Stats strip ---- */
+    .stat-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+    .stat { background:#111; border:1px solid #1e1e1e; border-radius:10px; padding:16px; text-align:center; }
+    .stat-num { font-size:26px; font-weight:800; }
+    .stat-label { font-size:10px; color:#555; text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
+
+    /* ---- Copilot floating ---- */
+    .cop-bubble { position:fixed; bottom:24px; right:24px; width:48px; height:48px; border-radius:50%; background:#7c3aed; border:none; color:#fff; font-size:20px; cursor:pointer; z-index:200; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(124,58,237,0.45); transition:transform 0.15s,box-shadow 0.15s; }
+    .cop-bubble:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(124,58,237,0.6); }
+    .cop-bubble.active { background:#5b21b6; }
+    .cop-window { position:fixed; bottom:84px; right:24px; width:340px; height:480px; background:#0f0f0f; border:1px solid #222; border-radius:14px; display:flex; flex-direction:column; z-index:199; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,0.7); transform:translateY(12px) scale(0.97); opacity:0; pointer-events:none; transition:transform 0.18s,opacity 0.18s; }
+    .cop-window.open { transform:translateY(0) scale(1); opacity:1; pointer-events:all; }
+    .cop-hd { padding:12px 14px; border-bottom:1px solid #1a1a1a; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .cop-dot { width:8px; height:8px; border-radius:50%; background:#7c3aed; flex-shrink:0; }
+    .cop-title { font-size:13px; font-weight:700; color:#e0e0e0; }
+    .cop-sub { font-size:10px; color:#333; margin-left:auto; }
+    .cop-msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+    .cmsg-ai { background:#181818; border:1px solid #222; border-radius:8px 8px 8px 2px; padding:10px 12px; font-size:12px; color:#bbb; line-height:1.65; }
+    .cmsg-user { background:#1a0e38; border:1px solid #3b1d8a; border-radius:8px 8px 2px 8px; padding:9px 12px; font-size:12px; color:#c4b5fd; text-align:right; align-self:flex-end; max-width:85%; }
+    .cmsg-label { font-size:10px; font-weight:700; color:#8b5cf6; display:block; margin-bottom:4px; }
+    .cop-sources { margin: 2px 0 6px 0; }
+    .cop-src-label { font-size:10px; color:#555; margin-bottom:4px; font-weight:600; letter-spacing:0.04em; }
+    .cop-src-card { background:#111; border:1px solid #222; border-radius:6px; padding:7px 9px; margin-bottom:4px; }
+    .cop-src-title { font-size:10px; color:#8b5cf6; font-weight:700; margin-bottom:3px; font-family:monospace; }
+    .cop-src-snippet { font-size:10px; color:#666; line-height:1.45; }
+    .cop-inp-row { padding:10px 12px; border-top:1px solid #1a1a1a; display:flex; gap:8px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     LOGIN OVERLAY — senha simples hardcoded
+═══════════════════════════════════════ -->
+<div id="login-overlay">
+  <div class="login-box fade-up">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;background:#7c3aed;border-radius:9px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="white"/>
+          <rect x="12" y="3" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="3" y="12" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="12" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+          <rect x="16" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+        </svg>
+      </div>
+      <span style="font-size:20px;font-weight:800;color:#f0f0f0;letter-spacing:-0.02em;">3Notes<span style="color:#8b5cf6;">.AI</span></span>
+    </div>
+    <div style="font-size:11px;color:#3b3b3b;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:28px;">Acesso Master</div>
+    <input id="inp-senha" type="password" placeholder="Senha de acesso" class="inp" style="text-align:center;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter') autenticar()" />
+    <button onclick="autenticar()" class="btn btn-primary" style="width:100%;justify-content:center;">Entrar</button>
+    <div id="login-erro" class="hidden" style="color:#fca5a5;font-size:12px;margin-top:10px;">Senha incorreta.</div>
+    <div style="margin-top:20px;font-size:11px;color:#2a2a2a;">Padrão: admin123</div>
+  </div>
+</div>
+
+<div class="app" id="app-content" style="display:none;">
+
+  <!-- ──────────── Sidebar ──────────── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="white"/>
+          <rect x="12" y="3" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="3" y="12" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="12" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+          <rect x="16" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">3Notes<span style="color:#8b5cf6;">.AI</span></div>
+        <div class="brand-badge">MASTER</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-item active" onclick="showSection('validacao')" id="nav-validacao">
+        <span>🔍</span> Validação
+      </div>
+      <div class="nav-item" onclick="showSection('chamados')" id="nav-chamados">
+        <span>📋</span> Chamados
+      </div>
+      <div class="nav-item" onclick="showSection('equipamentos')" id="nav-equipamentos">
+        <span>🔧</span> Equipamentos
+      </div>
+      <div class="nav-item" onclick="showSection('knowledge')" id="nav-knowledge">
+        <span>🧠</span> Memória
+      </div>
+      <div class="nav-item" onclick="showSection('grafo')" id="nav-grafo">
+        <span>🕸️</span> Grafo
+      </div>
+    </nav>
+
+    <div style="flex:1;"></div>
+
+    <div style="padding:8px;">
+      <a href="/static/dashboard.html" class="nav-item" style="justify-content:center;font-size:11px;color:#444;text-decoration:none;">↗ Dashboard</a>
+      <a href="/static/reporter.html" class="nav-item" style="justify-content:center;font-size:11px;color:#444;text-decoration:none;">↗ Reporter</a>
+      <div class="nav-item" onclick="sair()" style="justify-content:center;font-size:11px;color:#444;margin-top:4px;">⎋ Sair</div>
+    </div>
+  </aside>
+
+  <!-- ──────────── Main ──────────── -->
+  <main class="main">
+
+    <!-- ═══ VALIDAÇÃO ═══ -->
+    <section id="sec-validacao">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <h1 class="page-title">Fila de Validação</h1>
+          <p class="page-sub">Chamados aguardando aprovação antes do embedding no ChromaDB</p>
+        </div>
+        <button onclick="carregarValidacao()" class="btn btn-ghost">↻ Atualizar</button>
+      </div>
+
+      <!-- Como funciona -->
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-left:3px solid #7c3aed;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#888;line-height:1.7;">
+        <strong style="color:#c4b5fd;">Como funciona o deferred embedding:</strong>
+        Quando um funcionário abre um chamado, ele é salvo no banco mas <em>não entra no ChromaDB ainda</em>.
+        O Master revisa, corrige se necessário e aprova — só então o dado é embeddado e passa a enriquecer o RAG.
+        Isso garante que a base de conhecimento contém apenas dados verificados.
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat"><div class="stat-num" id="stat-pendentes" style="color:#c4b5fd;">—</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat"><div class="stat-num" id="stat-validados" style="color:#6ee7b7;">—</div><div class="stat-label">Validados hoje</div></div>
+        <div class="stat"><div class="stat-num" id="stat-total" style="color:#888;">—</div><div class="stat-label">Total chamados</div></div>
+      </div>
+
+      <div id="lista-validacao" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </section>
+
+    <!-- ═══ CHAMADOS (CRUD) ═══ -->
+    <section id="sec-chamados" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <h1 class="page-title">Explorador de Chamados</h1>
+          <p class="page-sub">CRUD completo — edite qualquer chamado e re-embeda no ChromaDB</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <select id="filtro-status" class="inp" style="width:auto;" onchange="carregarChamados()">
+            <option value="">Todos os status</option>
+            <option value="aberto">Aberto</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="resolvido">Resolvido</option>
+          </select>
+          <button onclick="carregarChamados()" class="btn btn-ghost">↻</button>
+        </div>
+      </div>
+      <div id="lista-chamados" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </section>
+
+    <!-- ═══ EQUIPAMENTOS (CRUD) ═══ -->
+    <section id="sec-equipamentos" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <h1 class="page-title">Equipamentos</h1>
+          <p class="page-sub">Edite patrimônio, tipo, setor e criticidade base</p>
+        </div>
+        <button onclick="carregarEquipamentos()" class="btn btn-ghost">↻</button>
+      </div>
+      <input id="busca-eq" type="text" placeholder="Buscar…" class="inp" style="margin-bottom:14px;" oninput="filtrarEq()" />
+      <div id="lista-eq" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </section>
+
+    <!-- ═══ MEMÓRIA ═══ -->
+    <section id="sec-knowledge" class="hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <h1 class="page-title">Memória da IA</h1>
+          <p class="page-sub">Fontes indexadas no ChromaDB — gerencie o que a IA aprende</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="abrirUpload()" class="btn btn-primary">+ Adicionar documento</button>
+          <button onclick="carregarKnowledge()" class="btn btn-ghost">↻</button>
+        </div>
+      </div>
+
+      <!-- Busca semântica de teste -->
+      <div class="card" style="margin-bottom:18px;margin-top:18px;">
+        <div class="sec-label" style="margin-bottom:10px;">🔍 Teste de busca semântica (RAG)</div>
+        <div style="display:flex;gap:8px;">
+          <input id="busca-rag" type="text" placeholder="Ex: bomba de infusão alarme oclusão…" class="inp" />
+          <button onclick="testarRAG()" class="btn btn-primary">Testar</button>
+        </div>
+        <div id="rag-resultado" style="margin-top:12px;"></div>
+      </div>
+
+      <div id="lista-fontes" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </section>
+
+    <!-- Modal upload documento -->
+    <div id="modal-upload" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center;">
+      <div style="background:#111;border:1px solid #222;border-radius:12px;padding:24px;width:440px;max-width:95vw;" onclick="event.stopPropagation()">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <span style="font-size:15px;font-weight:700;color:#f0f0f0;">Adicionar à Memória</span>
+          <button onclick="fecharUpload()" class="btn btn-ghost" style="padding:4px 9px;">✕</button>
+        </div>
+        <form id="form-upload" style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <div class="sec-label" style="margin-bottom:5px;">Arquivo (.md, .txt, .pdf)</div>
+            <input type="file" name="file" accept=".md,.txt,.pdf" required class="inp" style="padding:6px;" />
+          </div>
+          <div>
+            <div class="sec-label" style="margin-bottom:5px;">Tipo de documento</div>
+            <select name="tipo" class="inp">
+              <option value="manual">Manual técnico</option>
+              <option value="protocolo">Protocolo hospitalar</option>
+              <option value="documento">Documento geral</option>
+            </select>
+          </div>
+          <div>
+            <div class="sec-label" style="margin-bottom:5px;">Tags (separadas por vírgula)</div>
+            <input type="text" name="tags_input" placeholder="ex: autoclave, esterilizacao, centro-cirurgico" class="inp" />
+          </div>
+          <button type="submit" id="btn-upload-submit" class="btn btn-success" style="justify-content:center;">
+            Indexar na Memória da IA
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══ GRAFO ═══ -->
+    <section id="sec-grafo" class="hidden" style="display:flex;flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">
+        <div>
+          <h1 class="page-title">Grafo de Conhecimento</h1>
+          <p class="page-sub">Clusters de notas interconectadas — equipamentos, chamados e protocolos</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="carregarGrafo()" class="btn btn-ghost">↻ Recarregar</button>
+          <button onclick="resetGrafo()" class="btn btn-ghost">⊙ Centralizar</button>
+        </div>
+      </div>
+
+      <!-- Legenda -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span> Equipamento
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span> Chamado resolvido
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;display:inline-block;"></span> Chamado aberto
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Protocolo
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#06b6d4;display:inline-block;"></span> Manual
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#aaa;margin-left:12px;padding-left:12px;border-left:1px solid #222;">
+          — vínculo por equipamento
+          &nbsp;&nbsp;··· vínculo por tag
+        </div>
+      </div>
+
+      <!-- SVG canvas -->
+      <div id="grafo-wrap" style="flex:1;background:#060608;border-radius:10px;border:1px solid #1a1a1a;position:relative;overflow:hidden;min-height:420px;">
+        <svg id="grafo-svg" style="width:100%;height:100%;"></svg>
+        <div id="grafo-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#444;font-size:13px;">Carregando grafo…</div>
+        <!-- Tooltip -->
+        <div id="grafo-tip" style="position:absolute;display:none;background:#111;border:1px solid #333;border-radius:7px;padding:9px 12px;font-size:11px;color:#ccc;pointer-events:none;max-width:220px;z-index:10;">
+          <div id="grafo-tip-title" style="font-weight:700;color:#e0e0e0;margin-bottom:3px;"></div>
+          <div id="grafo-tip-tipo" style="color:#666;margin-bottom:2px;"></div>
+          <div id="grafo-tip-info"></div>
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div id="grafo-stats" style="display:flex;gap:18px;margin-top:8px;flex-shrink:0;font-size:11px;color:#444;"></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+  const API = '';
+  const SENHA_MASTER = 'admin123';
+  let todosEq = [];
+
+  // ══════════════════════ Auth ══════════════════════
+  function autenticar() {
+    const val = document.getElementById('inp-senha').value;
+    if (val === SENHA_MASTER) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app-content').style.display = 'flex';
+      sessionStorage.setItem('master_ok', '1');
+      carregarValidacao();
+    } else {
+      document.getElementById('login-erro').classList.remove('hidden');
+    }
+  }
+
+  function sair() {
+    sessionStorage.removeItem('master_ok');
+    location.reload();
+  }
+
+  // Auto-restore session dentro da mesma aba
+  if (sessionStorage.getItem('master_ok') === '1') {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app-content').style.display = 'flex';
+  }
+
+  // ══════════════════════ Navegação ══════════════════════
+  function showSection(name) {
+    ['validacao','chamados','equipamentos','knowledge','grafo'].forEach(s => {
+      document.getElementById(`sec-${s}`).classList.toggle('hidden', s !== name);
+      document.getElementById(`nav-${s}`).classList.toggle('active', s === name);
+    });
+    if (name === 'validacao')    carregarValidacao();
+    if (name === 'chamados')     carregarChamados();
+    if (name === 'equipamentos') carregarEquipamentos();
+    if (name === 'knowledge')    { carregarKnowledge(); fecharUpload(); }
+    if (name === 'grafo')        carregarGrafo();
+  }
+
+  // ══════════════════════ Utils ══════════════════════
+  function badge(nivel) {
+    if (!nivel) return '<span class="badge badge-status">—</span>';
+    const labels = { critico:'crítico', alto:'alto', medio:'médio', baixo:'baixo' };
+    return `<span class="badge badge-${nivel}">${labels[nivel]||nivel}</span>`;
+  }
+
+  function fmtData(iso) {
+    if (!iso) return '—';
+    return new Date(iso + (iso.includes('Z') ? '' : 'Z')).toLocaleString('pt-BR');
+  }
+
+  function fmtId(c) {
+    const ano = c.criado_em ? new Date(c.criado_em + 'Z').getFullYear() : new Date().getFullYear();
+    return `CHM-${ano}-${String(c.id).padStart(4,'0')}`;
+  }
+
+  function renderMd(texto) {
+    if (!texto) return '<em style="color:#555;">Sem conteúdo.</em>';
+    return texto
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/^---\n([\s\S]*?)\n---/m, (m,b) => `<span style="color:#555;">---\n${b}\n---</span>`)
+      .replace(/^## (.+)$/gm, '<span style="color:#8b5cf6;font-weight:700;">## $1</span>')
+      .replace(/\[\[([^\]]+)\]\]/g, '<span style="color:#c4b5fd;background:#1a0e38;padding:1px 5px;border-radius:3px;">[[$1]]</span>');
+  }
+
+  // ══════════════════════ VALIDAÇÃO ══════════════════════
+  async function carregarValidacao() {
+    const [respTodos, respPend] = await Promise.all([
+      fetch(`${API}/api/chamados`),
+      fetch(`${API}/api/chamados?status=aberto,em_andamento`),
+    ]);
+    const todos = await respTodos.json();
+    const pendentes = (await respPend.json()).filter(c => !c.validado);
+
+    const hoje = new Date().toDateString();
+    const validadosHoje = todos.filter(c =>
+      c.validado && c.validado_em && new Date(c.validado_em + 'Z').toDateString() === hoje
+    ).length;
+
+    document.getElementById('stat-pendentes').textContent = pendentes.length;
+    document.getElementById('stat-validados').textContent = validadosHoje;
+    document.getElementById('stat-total').textContent = todos.length;
+
+    const container = document.getElementById('lista-validacao');
+    if (pendentes.length === 0) {
+      container.innerHTML = `
+        <div class="card" style="text-align:center;padding:40px;color:#3a3a3a;">
+          <div style="font-size:32px;margin-bottom:10px;">✓</div>
+          <div style="font-size:14px;color:#555;">Fila limpa — nenhum chamado aguardando validação.</div>
+          <div style="font-size:11px;color:#333;margin-top:6px;">Novos chamados do reporter aparecerão aqui.</div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = pendentes.map(c => buildChamadoCard(c, 'validacao')).join('');
+  }
+
+  function buildChamadoCard(c, modo) {
+    const chm = fmtId(c);
+    const nivel = c.criticidade_confirmada || c.criticidade_sugerida || 'baixo';
+    const isValidacao = modo === 'validacao';
+
+    return `
+      <div class="chamado-row ${c.validado ? 'validated' : 'pending'} fade-up" id="card-${c.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-family:monospace;font-size:12px;color:#666;">${chm}</span>
+              ${badge(nivel)}
+              ${c.validado
+                ? '<span class="badge badge-ok">✓ validado</span>'
+                : '<span class="badge badge-pending">⏳ pendente</span>'}
+            </div>
+            <div style="font-size:14px;color:#e0e0e0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${(c.descricao || '').split('\n')[0]}
+            </div>
+            <div style="font-size:11px;color:#555;margin-top:3px;">
+              👤 ${c.aberto_por || '—'} · 🏥 ${c.setor_reportador || '—'} · 📅 ${fmtData(c.criado_em)}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-ghost" onclick="toggleExpand(${c.id})" style="padding:6px 10px;">⌄ Expandir</button>
+            ${isValidacao && !c.validado
+              ? `<button class="btn btn-success" onclick="validarChamado(${c.id})">✓ Validar e embedar</button>`
+              : ''}
+          </div>
+        </div>
+
+        <!-- Área expandida -->
+        <div class="expand-body" id="expand-${c.id}">
+
+          <!-- Formulário de edição -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Descrição do problema</div>
+              <textarea id="ed-desc-${c.id}" class="inp" rows="3" style="resize:vertical;font-family:monospace;font-size:12px;">${c.descricao || ''}</textarea>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <div class="sec-label" style="margin-bottom:4px;">Setor reportador</div>
+                <input id="ed-setor-${c.id}" class="inp" value="${c.setor_reportador || ''}" />
+              </div>
+              <div>
+                <div class="sec-label" style="margin-bottom:4px;">Criticidade sugerida</div>
+                <select id="ed-crit-${c.id}" class="inp">
+                  ${['critico','alto','medio','baixo'].map(v =>
+                    `<option value="${v}" ${(c.criticidade_sugerida===v)?'selected':''}>${v}</option>`
+                  ).join('')}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <button class="btn btn-warn" onclick="salvarEdicao(${c.id})">💾 Salvar edições</button>
+            ${!c.validado
+              ? `<button class="btn btn-success" onclick="validarChamado(${c.id})">✓ Validar e embedar</button>`
+              : `<button class="btn btn-ghost" onclick="reembedar(${c.id})">↺ Re-embedar no ChromaDB</button>`
+            }
+          </div>
+
+          <!-- MD Preview -->
+          ${c.md_path ? `
+            <div class="sec-label" style="margin-bottom:6px;">📄 Nota .md atual</div>
+            <div class="md" id="md-preview-${c.id}">Carregando…</div>
+            <script>carregarMdPreview(${c.id});<\/script>
+          ` : '<div style="font-size:12px;color:#555;">Sem arquivo .md associado.</div>'}
+        </div>
+      </div>`;
+  }
+
+  function toggleExpand(id) {
+    const el = document.getElementById(`expand-${id}`);
+    el.classList.toggle('open');
+  }
+
+  async function carregarMdPreview(id) {
+    try {
+      const resp = await fetch(`${API}/api/chamados/${id}/md`);
+      if (resp.ok) {
+        const d = await resp.json();
+        const el = document.getElementById(`md-preview-${id}`);
+        if (el) el.innerHTML = renderMd(d.conteudo);
+      }
+    } catch {}
+  }
+
+  async function salvarEdicao(id) {
+    const descEl   = document.getElementById(`ed-desc-${id}`);
+    const setorEl  = document.getElementById(`ed-setor-${id}`);
+    const critEl   = document.getElementById(`ed-crit-${id}`);
+    if (!descEl) return;
+
+    const body = {
+      descricao: descEl.value.trim(),
+      setor_reportador: setorEl?.value.trim(),
+      criticidade_sugerida: critEl?.value,
+    };
+
+    const resp = await fetch(`${API}/api/chamados/${id}/editar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (resp.ok) {
+      await carregarMdPreview(id);
+      showToast('Edições salvas e .md atualizado.');
+    } else {
+      showToast('Erro ao salvar.', true);
+    }
+  }
+
+  async function validarChamado(id) {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Embeddando…';
+    try {
+      const resp = await fetch(`${API}/api/chamados/${id}/validar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ validado_por: 'master' }),
+      });
+      if (resp.ok) {
+        showToast('Chamado validado e indexado no ChromaDB!');
+        await carregarValidacao();
+      } else {
+        const e = await resp.json().catch(() => ({}));
+        showToast(e.detail || 'Erro ao validar.', true);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✓ Validar e embedar';
+    }
+  }
+
+  async function reembedar(id) {
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '⏳ Re-embeddando…';
+    try {
+      const resp = await fetch(`${API}/api/chamados/${id}/validar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ validado_por: 'master' }),
+      });
+      showToast(resp.ok ? 'Re-indexado com sucesso.' : 'Erro ao re-indexar.', !resp.ok);
+    } finally {
+      btn.disabled = false; btn.textContent = '↺ Re-embedar no ChromaDB';
+    }
+  }
+
+  // ══════════════════════ CHAMADOS ══════════════════════
+  async function carregarChamados() {
+    const status = document.getElementById('filtro-status').value;
+    const url = status
+      ? `${API}/api/chamados?status=${status}`
+      : `${API}/api/chamados`;
+    const resp = await fetch(url);
+    const lista = await resp.json();
+
+    const container = document.getElementById('lista-chamados');
+    if (!lista.length) {
+      container.innerHTML = '<div class="card" style="text-align:center;color:#555;padding:30px;">Nenhum chamado encontrado.</div>';
+      return;
+    }
+    container.innerHTML = lista.map(c => buildChamadoCard(c, 'crud')).join('');
+  }
+
+  // ══════════════════════ EQUIPAMENTOS ══════════════════════
+  async function carregarEquipamentos() {
+    const resp = await fetch(`${API}/api/equipamentos`);
+    todosEq = await resp.json();
+    renderEq(todosEq);
+  }
+
+  function filtrarEq() {
+    const q = document.getElementById('busca-eq').value.toLowerCase();
+    renderEq(todosEq.filter(e =>
+      e.patrimonio.toLowerCase().includes(q) ||
+      e.descricao.toLowerCase().includes(q) ||
+      e.setor.toLowerCase().includes(q)
+    ));
+  }
+
+  function renderEq(lista) {
+    const c = document.getElementById('lista-eq');
+    if (!lista.length) {
+      c.innerHTML = '<div class="card" style="text-align:center;color:#555;padding:30px;">Nenhum equipamento.</div>';
+      return;
+    }
+    c.innerHTML = lista.map(e => `
+      <div class="card card-tight fade-up" id="eq-card-${e.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <span style="font-family:monospace;color:#c4b5fd;font-size:13px;font-weight:600;">${e.patrimonio}</span>
+            <span style="font-size:13px;color:#e0e0e0;margin-left:10px;">${e.descricao}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost" onclick="toggleExpand('eq-${e.id}')">⌄ Editar</button>
+            <button class="btn ${e.ativo ? 'btn-danger' : 'btn-success'}" onclick="toggleAtivo(${e.id},${!e.ativo})">
+              ${e.ativo ? 'Desativar' : 'Ativar'}
+            </button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#555;">${e.tipo} · ${e.setor} · ${e.localizacao}</div>
+
+        <div class="expand-body" id="expand-eq-${e.id}" style="margin-top:10px;">
+          <hr class="div" style="margin-top:0;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Descrição</div>
+              <input id="eq-desc-${e.id}" class="inp" value="${e.descricao}" />
+            </div>
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Tipo</div>
+              <input id="eq-tipo-${e.id}" class="inp" value="${e.tipo}" />
+            </div>
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Setor</div>
+              <input id="eq-setor-${e.id}" class="inp" value="${e.setor}" />
+            </div>
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Localização</div>
+              <input id="eq-loc-${e.id}" class="inp" value="${e.localizacao}" />
+            </div>
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Criticidade base</div>
+              <select id="eq-crit-${e.id}" class="inp">
+                ${['critico','alto','medio','baixo'].map(v =>
+                  `<option value="${v}" ${e.criticidade_base===v?'selected':''}>${v}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div>
+              <div class="sec-label" style="margin-bottom:4px;">Intervalo preventivo (dias)</div>
+              <input id="eq-interv-${e.id}" class="inp" type="number" value="${e.intervalo_preventivo_dias || ''}" placeholder="Ex: 90" />
+            </div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px;" onclick="salvarEq(${e.id})">💾 Salvar equipamento</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function salvarEq(id) {
+    const body = {
+      descricao: document.getElementById(`eq-desc-${id}`)?.value.trim(),
+      tipo: document.getElementById(`eq-tipo-${id}`)?.value.trim(),
+      setor: document.getElementById(`eq-setor-${id}`)?.value.trim(),
+      localizacao: document.getElementById(`eq-loc-${id}`)?.value.trim(),
+      criticidade_base: document.getElementById(`eq-crit-${id}`)?.value,
+    };
+    const interv = document.getElementById(`eq-interv-${id}`)?.value;
+    if (interv) body.intervalo_preventivo_dias = parseInt(interv);
+
+    const resp = await fetch(`${API}/api/equipamentos/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    showToast(resp.ok ? 'Equipamento atualizado.' : 'Erro ao salvar.', !resp.ok);
+    if (resp.ok) carregarEquipamentos();
+  }
+
+  async function toggleAtivo(id, novoEstado) {
+    await fetch(`${API}/api/equipamentos/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ativo: novoEstado }),
+    });
+    carregarEquipamentos();
+  }
+
+  // ══════════════════════ MEMÓRIA ══════════════════════
+  function abrirUpload() {
+    document.getElementById('form-upload').reset();
+    document.getElementById('modal-upload').style.display = 'flex';
+  }
+  function fecharUpload() {
+    document.getElementById('modal-upload').style.display = 'none';
+  }
+
+  document.getElementById('form-upload').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-upload-submit');
+    btn.disabled = true; btn.textContent = 'Indexando…';
+    const fd = new FormData(e.target);
+    const tags = (fd.get('tags_input')||'').split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    fd.delete('tags_input');
+    fd.set('tags', JSON.stringify(tags));
+    try {
+      const r = await fetch(`${API}/api/knowledge/upload`, { method: 'POST', body: fd });
+      if (r.ok) {
+        fecharUpload();
+        carregarKnowledge();
+        showToast('Documento indexado na Memória da IA!');
+      } else {
+        const err = await r.json().catch(() => ({}));
+        showToast(err.detail || 'Erro no upload.', true);
+      }
+    } catch {
+      showToast('Erro ao enviar.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Indexar na Memória da IA';
+    }
+  });
+
+  async function carregarKnowledge() {
+    const resp = await fetch(`${API}/api/knowledge/fontes`);
+    const todas = await resp.json();
+    const container = document.getElementById('lista-fontes');
+
+    // Chamados são gerenciados na seção Chamados.
+    // Aqui mostramos apenas o conhecimento curado: manuais, protocolos, documentos.
+    const TIPOS_CURADOS = ['manual', 'protocolo', 'documento'];
+    const fontes = todas.filter(f => TIPOS_CURADOS.includes(f.tipo));
+
+
+    if (!fontes.length) {
+      container.innerHTML = `
+        <div class="card" style="text-align:center;padding:30px;">
+          <div style="font-size:28px;margin-bottom:8px;">📭</div>
+          <div style="color:#ddd;font-weight:600;margin-bottom:4px;">Nenhum documento curado</div>
+          <div style="color:#555;font-size:12px;">Adicione manuais técnicos ou protocolos usando o botão acima.<br>Os chamados resolvidos são indexados automaticamente pela fila de validação.</div>
+        </div>`;
+      return;
+    }
+
+    const tipoMeta = {
+      manual:    { icon: '📖', label: 'Manuais Técnicos' },
+      protocolo: { icon: '📋', label: 'Protocolos' },
+      documento: { icon: '📄', label: 'Documentos' },
+    };
+
+    const grupos = {};
+    fontes.forEach(f => {
+      if (!grupos[f.tipo]) grupos[f.tipo] = [];
+      grupos[f.tipo].push(f);
+    });
+
+    // Ordem de exibição: protocolos primeiro, manuais, documentos
+    const ORDEM = ['protocolo', 'manual', 'documento'];
+
+    container.innerHTML = ORDEM.filter(t => grupos[t]).map(tipo => {
+      const lista = grupos[tipo];
+      const meta = tipoMeta[tipo];
+      return `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="sec-label">${meta.icon} ${meta.label}</div>
+            <span style="font-size:10px;color:#444;">${lista.length} arquivo${lista.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0;">
+            ${lista.map((f, i) => {
+              let tags = [];
+              try { tags = JSON.parse(f.tags || '[]'); } catch {}
+              return `
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;${i < lista.length-1 ? 'border-bottom:1px solid #1a1a1a;' : ''}">
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:13px;color:#e0e0e0;font-weight:600;margin-bottom:3px;">${f.titulo}</div>
+                  <div style="font-size:10px;color:#444;font-family:monospace;margin-bottom:4px;">${f.arquivo_path}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                    ${tags.slice(0, 5).map(t => `<span style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:1px 6px;font-size:10px;color:#666;">${t}</span>`).join('')}
+                  </div>
+                  <div style="font-size:10px;color:#333;margin-top:4px;">Indexado em ${fmtData(f.indexado_em)}</div>
+                </div>
+                <button class="btn btn-danger" style="padding:4px 9px;font-size:11px;flex-shrink:0;margin-left:12px;" onclick="removerFonte(${f.id})">✕</button>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+    // Resumo de chamados indexados (apenas informativo)
+    const nChamados = todas.filter(f => f.tipo === 'chamado_resolvido').length;
+    if (nChamados > 0) {
+      container.innerHTML += `
+        <div style="margin-top:8px;padding:12px 16px;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;font-size:12px;color:#444;display:flex;align-items:center;gap:8px;">
+          <span style="color:#16a34a;font-size:16px;">✓</span>
+          <span><strong style="color:#555;">${nChamados} chamados resolvidos</strong> também estão indexados no RAG — gerencie-os na seção <strong style="color:#555;">Chamados</strong>.</span>
+        </div>`;
+    }
+  }
+
+  async function testarRAG() {
+    const q = document.getElementById('busca-rag').value.trim();
+    if (!q) return;
+    const el = document.getElementById('rag-resultado');
+    el.innerHTML = '<p style="color:#666;font-size:12px;">Consultando ChromaDB…</p>';
+    try {
+      const resp = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(q)}`);
+      const res = await resp.json();
+      if (!res.length) { el.innerHTML = '<p style="color:#555;font-size:12px;">Sem resultados.</p>'; return; }
+      el.innerHTML = res.map((r, i) => `
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:7px;padding:12px;margin-bottom:8px;">
+          <div style="font-size:11px;color:#c4b5fd;font-weight:600;margin-bottom:4px;">[${i+1}] ${r.fonte || 'desconhecido'}</div>
+          <div style="font-size:12px;color:#bbb;line-height:1.6;">${(r.trecho||'').substring(0,400)}…</div>
+        </div>`).join('');
+    } catch {
+      el.innerHTML = '<p style="color:#fca5a5;font-size:12px;">Erro — verifique o Ollama.</p>';
+    }
+  }
+
+  async function removerFonte(id) {
+    if (!confirm('Remover esta fonte do ChromaDB?')) return;
+    await fetch(`${API}/api/knowledge/fontes/${id}`, { method: 'DELETE' });
+    carregarKnowledge();
+  }
+
+  // ══════════════════════ GRAFO ══════════════════════
+  let grafoSimulation = null;
+  let grafoData = null;
+
+  const GRAFO_COLOR = {
+    equipamento: '#8b5cf6',
+    chamado_resolvido: '#10b981',
+    chamado: '#3b82f6',
+    protocolo: '#f59e0b',
+    manual: '#06b6d4',
+    documento: '#9ca3af',
+  };
+
+  function grafoNodeColor(d) {
+    if (d.tipo === 'chamado') return d.status === 'resolvido' ? GRAFO_COLOR.chamado_resolvido : GRAFO_COLOR.chamado;
+    return GRAFO_COLOR[d.tipo] || '#666';
+  }
+
+  function grafoNodeRadius(d, conn) {
+    const c = conn[d.id] || 0;
+    if (d.tipo === 'equipamento') return 14 + Math.min(c * 0.5, 8);
+    if (d.tipo === 'chamado')     return 4  + Math.min(c * 0.4, 5);
+    return 9 + Math.min(c * 0.4, 6);
+  }
+
+  async function carregarGrafo() {
+    document.getElementById('grafo-loading').style.display = 'flex';
+    const svgEl = document.getElementById('grafo-svg');
+    svgEl.innerHTML = '';
+
+    let data;
+    try {
+      const r = await fetch(`${API}/api/knowledge/grafo`);
+      data = await r.json();
+    } catch {
+      document.getElementById('grafo-loading').textContent = 'Erro ao carregar grafo.';
+      return;
+    }
+    grafoData = data;
+
+    const wrap = document.getElementById('grafo-wrap');
+    const W = wrap.clientWidth  || 900;
+    const H = wrap.clientHeight || 500;
+
+    // Compute connectivity
+    const conn = {};
+    data.edges.forEach(e => {
+      conn[e.source] = (conn[e.source] || 0) + 1;
+      conn[e.target] = (conn[e.target] || 0) + 1;
+    });
+
+    const svg = d3.select('#grafo-svg')
+      .attr('viewBox', `0 0 ${W} ${H}`)
+      .attr('width', W).attr('height', H);
+
+    // Zoom + pan
+    const g = svg.append('g');
+    const zoom = d3.zoom().scaleExtent([0.08, 6]).on('zoom', e => g.attr('transform', e.transform));
+    svg.call(zoom);
+    window._grafoZoom = zoom;
+    window._grafoSvg = svg;
+
+    // Arrow marker for wikilinks
+    svg.append('defs').append('marker')
+      .attr('id', 'arrow').attr('viewBox', '0 -4 8 8')
+      .attr('refX', 10).attr('refY', 0)
+      .attr('markerWidth', 5).attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#3b82f640');
+
+    // Links layer
+    const linkG = g.append('g').attr('class', 'links');
+    const link = linkG.selectAll('line')
+      .data(data.edges)
+      .join('line')
+      .attr('stroke', d => {
+        if (d.tipo === 'equipamento') return '#8b5cf650';
+        if (d.tipo === 'wikilink')    return '#3b82f640';
+        return '#ffffff0c';
+      })
+      .attr('stroke-width', d => d.tipo === 'equipamento' ? 1.8 : d.tipo === 'wikilink' ? 1.2 : 0.8)
+      .attr('stroke-dasharray', d => d.tipo === 'tag' ? '3,3' : null)
+      .attr('marker-end', d => d.tipo === 'wikilink' ? 'url(#arrow)' : null);
+
+    // Nodes layer
+    const nodeG = g.append('g').attr('class', 'nodes');
+    const node = nodeG.selectAll('g')
+      .data(data.nodes)
+      .join('g')
+      .attr('cursor', 'pointer')
+      .call(d3.drag()
+        .on('start', (event, d) => {
+          if (!event.active) sim.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on('end', (event, d) => {
+          if (!event.active) sim.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        })
+      );
+
+    // Glow circles (for equipamentos)
+    node.filter(d => d.tipo === 'equipamento')
+      .append('circle')
+      .attr('r', d => grafoNodeRadius(d, conn) + 6)
+      .attr('fill', d => grafoNodeColor(d))
+      .attr('fill-opacity', 0.12);
+
+    // Main circle
+    node.append('circle')
+      .attr('r', d => grafoNodeRadius(d, conn))
+      .attr('fill', d => grafoNodeColor(d))
+      .attr('fill-opacity', d => d.tipo === 'chamado' ? 0.75 : 0.9)
+      .attr('stroke', d => d.tipo === 'equipamento' ? '#fff' : 'none')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-opacity', 0.3);
+
+    // Labels — equipamentos and curated docs always, chamados only if hovered
+    node.filter(d => d.tipo !== 'chamado')
+      .append('text')
+      .text(d => d.label.length > 22 ? d.label.slice(0, 22) + '…' : d.label)
+      .attr('x', d => grafoNodeRadius(d, conn) + 4)
+      .attr('y', 4)
+      .attr('fill', d => d.tipo === 'equipamento' ? '#d8b4fe' : '#aaa')
+      .attr('font-size', d => d.tipo === 'equipamento' ? 11 : 9)
+      .attr('font-weight', d => d.tipo === 'equipamento' ? '700' : '400')
+      .attr('pointer-events', 'none');
+
+    // Tooltip
+    const tip = document.getElementById('grafo-tip');
+    const tipTitle = document.getElementById('grafo-tip-title');
+    const tipTipo = document.getElementById('grafo-tip-tipo');
+    const tipInfo = document.getElementById('grafo-tip-info');
+
+    node
+      .on('mouseover', function(event, d) {
+        d3.select(this).select('circle').attr('fill-opacity', 1);
+        tipTitle.textContent = d.label;
+        tipTipo.textContent = d.tipo.replace('_', ' ').toUpperCase();
+        const parts = [];
+        if (d.setor) parts.push('Setor: ' + d.setor);
+        if (d.criticidade) parts.push('Criticidade: ' + d.criticidade);
+        if (d.status) parts.push('Status: ' + d.status);
+        if (d.titulo && d.titulo !== d.label) parts.push(d.titulo.slice(0, 80));
+        if (d.tags && d.tags.length) parts.push('Tags: ' + d.tags.slice(0,4).join(', '));
+        parts.push(`${conn[d.id]||0} conexões`);
+        tipInfo.innerHTML = parts.map(p => `<div>${p}</div>`).join('');
+        tip.style.display = 'block';
+      })
+      .on('mousemove', function(event) {
+        const rect = wrap.getBoundingClientRect();
+        const x = event.clientX - rect.left + 12;
+        const y = event.clientY - rect.top  - 10;
+        tip.style.left = (x + tip.offsetWidth > wrap.clientWidth ? x - tip.offsetWidth - 20 : x) + 'px';
+        tip.style.top  = y + 'px';
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this).select('circle').attr('fill-opacity', d.tipo === 'chamado' ? 0.75 : 0.9);
+        tip.style.display = 'none';
+      })
+      .on('click', function(event, d) {
+        // Highlight connected nodes
+        const connected = new Set([d.id]);
+        data.edges.forEach(e => {
+          if (e.source.id === d.id || e.source === d.id) connected.add(e.target.id || e.target);
+          if (e.target.id === d.id || e.target === d.id) connected.add(e.source.id || e.source);
+        });
+        nodeG.selectAll('circle')
+          .attr('fill-opacity', nd => connected.has(nd.id) ? 1 : 0.15);
+        linkG.selectAll('line')
+          .attr('stroke-opacity', ed => {
+            const s = ed.source.id || ed.source, t = ed.target.id || ed.target;
+            return (s === d.id || t === d.id) ? 1 : 0.05;
+          });
+      });
+
+    // Click background to reset
+    svg.on('click', function(event) {
+      if (event.target === this) {
+        nodeG.selectAll('circle').attr('fill-opacity', d => d.tipo === 'chamado' ? 0.75 : 0.9);
+        linkG.selectAll('line').attr('stroke-opacity', 1);
+      }
+    });
+
+    // Force simulation
+    const sim = d3.forceSimulation(data.nodes)
+      .force('link', d3.forceLink(data.edges).id(d => d.id)
+        .distance(d => d.tipo === 'equipamento' ? 80 : 35)
+        .strength(d => d.tipo === 'equipamento' ? 0.7 : d.tipo === 'wikilink' ? 0.4 : 0.15))
+      .force('charge', d3.forceManyBody().strength(d => d.tipo === 'equipamento' ? -300 : -60))
+      .force('center', d3.forceCenter(W / 2, H / 2).strength(0.05))
+      .force('collide', d3.forceCollide().radius(d => grafoNodeRadius(d, conn) + 4));
+
+    sim.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
+    });
+
+    grafoSimulation = sim;
+    document.getElementById('grafo-loading').style.display = 'none';
+
+    // Stats bar
+    const nc = data.nodes.filter(n => n.tipo === 'chamado').length;
+    const ne = data.nodes.filter(n => n.tipo === 'equipamento').length;
+    const nf = data.nodes.filter(n => n.tipo !== 'chamado' && n.tipo !== 'equipamento').length;
+    document.getElementById('grafo-stats').innerHTML =
+      `<span>${nc} chamados</span><span>·</span><span>${ne} equipamentos</span><span>·</span><span>${nf} documentos</span><span>·</span><span>${data.edges.length} conexões</span>`;
+  }
+
+  function resetGrafo() {
+    if (window._grafoSvg && window._grafoZoom) {
+      window._grafoSvg.transition().duration(600).call(
+        window._grafoZoom.transform,
+        d3.zoomIdentity
+      );
+    }
+    if (grafoSimulation) grafoSimulation.alpha(0.5).restart();
+  }
+
+  // ══════════════════════ Toast ══════════════════════
+  let toastTimer;
+  function showToast(msg, erro = false) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;transition:opacity 0.3s;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.background = erro ? '#3b0a0a' : '#042f1a';
+    toast.style.color = erro ? '#fca5a5' : '#6ee7b7';
+    toast.style.border = `1px solid ${erro ? '#7f1d1d' : '#065f46'}`;
+    toast.style.opacity = '1';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  }
+
+  // ══════════════════════ Helpers ══════════════════════
+  // Expose para chamadas inline via onclick
+  window.toggleExpand = function(id) {
+    const el = document.getElementById(`expand-${id}`);
+    if (el) el.classList.toggle('open');
+  };
+  window.carregarMdPreview = carregarMdPreview;
+  window.salvarEdicao = salvarEdicao;
+  window.validarChamado = validarChamado;
+  window.reembedar = reembedar;
+  window.salvarEq = salvarEq;
+  window.toggleAtivo = toggleAtivo;
+  window.removerFonte = removerFonte;
+  window.testarRAG = testarRAG;
+
+  // Init
+  document.getElementById('inp-senha').addEventListener('keydown', e => {
+    if (e.key === 'Enter') autenticar();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') fecharUpload();
+  });
+  document.getElementById('modal-upload').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-upload')) fecharUpload();
+  });
+
+  // ══════════════════════ COPILOT ══════════════════════
+  let copHistory = [];
+  let copOpen = false;
+
+  function toggleCop() {
+    copOpen = !copOpen;
+    document.getElementById('cop-window').classList.toggle('open', copOpen);
+    document.getElementById('cop-bubble').classList.toggle('active', copOpen);
+    if (copOpen) document.getElementById('cop-input').focus();
+  }
+
+  function copAddMsg(texto, lado) {
+    const c = document.getElementById('cop-msgs');
+    const d = document.createElement('div');
+    d.className = lado === 'ai' ? 'cmsg-ai' : 'cmsg-user';
+    if (lado === 'ai') d.innerHTML = `<span class="cmsg-label">🤖 Copiloto</span>${texto}`;
+    else d.textContent = texto;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+    return d;
+  }
+
+  async function enviarCop() {
+    const input = document.getElementById('cop-input');
+    const txt = input.value.trim();
+    if (!txt) return;
+    input.value = '';
+
+    copAddMsg(txt, 'user');
+    copHistory.push({ role: 'user', content: txt });
+
+    const msgDiv = copAddMsg('', 'ai');
+    const span = document.createElement('span');
+    msgDiv.appendChild(span);
+
+    let full = '';
+    try {
+      const resp = await fetch(`${API}/ai/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: txt,
+          historico: copHistory.slice(-6),
+          modo: 'copiloto'
+        })
+      });
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ch = JSON.parse(line.slice(6));
+            if (ch.token) { full += ch.token; span.textContent = full; msgDiv.scrollIntoView({ block: 'end' }); }
+          } catch {}
+        }
+      }
+      copHistory.push({ role: 'assistant', content: full });
+      // Render source cards from RAG
+      try {
+        const sr = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(txt)}`);
+        if (sr.ok) {
+          const fontes = await sr.json();
+          const mostradas = fontes.slice(0, 3).filter(f => f.trecho && f.trecho.length > 20);
+          if (mostradas.length) {
+            const srcDiv = document.createElement('div');
+            srcDiv.className = 'cop-sources';
+            const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            srcDiv.innerHTML = `<div class="cop-src-label">📎 Fontes consultadas</div>` +
+              mostradas.map(f => `<div class="cop-src-card"><div class="cop-src-title">${esc(f.fonte||'—')}</div><div class="cop-src-snippet">${esc((f.trecho||'').slice(0,220))}</div></div>`).join('');
+            msgDiv.after(srcDiv);
+            document.getElementById('cop-msgs').scrollTop = 9999;
+          }
+        }
+      } catch {}
+    } catch { span.textContent = 'Erro ao conectar.'; }
+  }
+
+  document.getElementById('cop-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') enviarCop();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { fecharUpload(); if (copOpen) toggleCop(); }
+  });
+</script>
+
+<!-- Copilot flutuante -->
+<button class="cop-bubble" id="cop-bubble" onclick="toggleCop()" title="Copiloto IA">🤖</button>
+<div class="cop-window" id="cop-window">
+  <div class="cop-hd">
+    <div class="cop-dot"></div>
+    <span class="cop-title">Copiloto</span>
+    <span class="cop-sub">Gemma 4 + RAG</span>
+    <button onclick="toggleCop()" style="background:none;border:none;color:#444;font-size:16px;cursor:pointer;margin-left:6px;line-height:1;">×</button>
+  </div>
+  <div class="cop-msgs" id="cop-msgs">
+    <div class="cmsg-ai">
+      <span class="cmsg-label">🤖 Copiloto</span>
+      Olá Master! Posso ajudar a analisar padrões nos chamados, consultar a base de memória ou tirar dúvidas sobre os equipamentos.
+    </div>
+  </div>
+  <div class="cop-inp-row">
+    <input id="cop-input" type="text" class="inp" style="font-size:13px;flex:1;" placeholder="Pergunte ao copiloto…">
+    <button onclick="enviarCop()" style="background:#5b21b6;border:none;color:#fff;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:15px;">→</button>
+  </div>
+</div>
+
+</body>
+</html>

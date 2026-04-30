@@ -26,6 +26,19 @@ async def lifespan(app: FastAPI):
     with Session(engine) as session:
         gerar_agenda_pendente(session)
 
+    # warmup: load the chat model into Ollama before first user request
+    try:
+        from app.services.ollama_service import ollama_service
+        import httpx
+        model = await ollama_service._get_active_model()
+        async with httpx.AsyncClient(timeout=300) as client:
+            await client.post(
+                f"{ollama_service.base_url}/api/chat",
+                json={"model": model, "messages": [{"role": "user", "content": "ok"}], "stream": False},
+            )
+    except Exception:
+        pass  # warmup failure is non-fatal
+
     yield
 
 
@@ -45,7 +58,8 @@ app.include_router(agenda.router, prefix="/api")
 app.include_router(ai.router)
 app.include_router(knowledge.router, prefix="/api")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app.mount("/static", StaticFiles(directory=os.path.join(_BASE_DIR, "static")), name="static")
 
 
 @app.get("/", include_in_schema=False)

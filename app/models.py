@@ -31,7 +31,11 @@ class Chamado(SQLModel, table=True):
     descricao: str
     conversa_json: Optional[str] = None
     resolucao: Optional[str] = None
-    md_path: Optional[str] = None  # caminho do .md gerado para este chamado
+    md_path: Optional[str] = None
+    # --- Validação pelo master ---
+    validado: bool = Field(default=False)
+    validado_por: Optional[str] = None
+    validado_em: Optional[datetime] = None
     criado_em: datetime = Field(default_factory=datetime.utcnow)
     fechado_em: Optional[datetime] = None
 
@@ -131,8 +135,20 @@ class ChamadoRead(SQLModel):
     descricao: str
     resolucao: Optional[str]
     md_path: Optional[str]
+    validado: bool
+    validado_por: Optional[str]
+    validado_em: Optional[datetime]
     criado_em: datetime
     fechado_em: Optional[datetime]
+
+
+class ChamadoEdit(SQLModel):
+    """Schema para edição pelo master antes de validar."""
+    descricao: Optional[str] = None
+    criticidade_sugerida: Optional[str] = None
+    setor_reportador: Optional[str] = None
+    aberto_por: Optional[str] = None
+    tags_finais: Optional[list[str]] = None
 
 
 class AgendaPreventivaRead(SQLModel):

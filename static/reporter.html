@@ -1,475 +1,809 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3Notes.AI — Reportar Problema</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3Notes.AI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .screen { display: none; }
-    .screen.active { display: flex; }
-    .bubble-ai { background: #e8f0fe; border-radius: 18px 18px 18px 4px; }
-    .bubble-user { background: #1B3A6B; color: white; border-radius: 18px 18px 4px 18px; }
-    .badge-critico { background: #dc2626; color: white; }
-    .badge-alto { background: #ea580c; color: white; }
-    .badge-medio { background: #ca8a04; color: white; }
-    .badge-baixo { background: #16a34a; color: white; }
-    .typing span { animation: blink 1.2s infinite; }
-    .typing span:nth-child(2) { animation-delay: 0.2s; }
-    .typing span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
-    .tag-chip {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: #dbeafe; color: #1e40af;
-      border-radius: 9999px; padding: 3px 10px;
-      font-size: 0.8rem; font-weight: 500; cursor: default;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; color: #e2e2e2; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    /* --- Inputs --- */
+    .nb-input {
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      color: #e2e2e2;
+      border-radius: 7px;
+      padding: 9px 13px;
+      width: 100%;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .tag-chip button { background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 1rem; line-height: 1; padding: 0; }
+    .nb-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    .nb-input::placeholder { color: #444; }
+    select.nb-input { cursor: pointer; }
+    select.nb-input option { background: #1a1a1a; }
+
+    /* --- Textarea --- */
+    .nb-textarea {
+      background: #0f0f0f;
+      border: 1px solid #242424;
+      color: #d0d0d0;
+      border-radius: 8px;
+      padding: 16px;
+      width: 100%;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      resize: vertical;
+      min-height: 180px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .nb-textarea:focus { border-color: #5b21b6; }
+    .nb-textarea::placeholder { color: #333; }
+
+    /* --- Tags --- */
+    .tag-selected {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #1a0e38; border: 1px solid #4c1d95;
+      color: #c4b5fd; border-radius: 5px;
+      padding: 3px 9px; font-size: 12px; font-weight: 500;
+    }
+    .tag-suggested {
+      display: inline-flex; align-items: center; cursor: pointer;
+      background: #1a1a1a; border: 1px solid #2e2e2e;
+      color: #777; border-radius: 5px;
+      padding: 3px 10px; font-size: 12px;
+      transition: all 0.15s;
+    }
+    .tag-suggested:hover { border-color: #7c3aed; color: #c4b5fd; background: #1a0e38; }
+
+    /* --- Urgência --- */
+    .urg-btn {
+      padding: 6px 15px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 2px solid transparent; transition: all 0.15s; opacity: 0.45;
+    }
+    .urg-btn.active { opacity: 1; transform: scale(1.03); }
+    .urg-critico { background: #3b0a0a; color: #fca5a5; border-color: #7f1d1d; }
+    .urg-alto    { background: #3b1506; color: #fdba74; border-color: #9a3412; }
+    .urg-medio   { background: #3b2a00; color: #fcd34d; border-color: #92400e; }
+    .urg-baixo   { background: #042f1a; color: #6ee7b7; border-color: #065f46; }
+
+    /* --- Section label --- */
+    .sec-label {
+      font-size: 10px; font-weight: 700; color: #444;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+    }
+
+    /* --- Divider --- */
+    .nb-hr { border: none; border-top: 1px solid #1e1e1e; margin: 22px 0; }
+
+    /* --- MD Preview --- */
     .md-preview {
-      font-family: 'Courier New', monospace;
-      background: #1e1e2e; color: #cdd6f4;
-      border-radius: 12px; padding: 16px;
-      font-size: 0.82rem; line-height: 1.6;
-      white-space: pre-wrap; overflow-y: auto;
-      max-height: 260px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px; background: #0d0d0d; border: 1px solid #222;
+      border-radius: 8px; padding: 20px; white-space: pre-wrap;
+      color: #bbb; line-height: 1.75; overflow-y: auto;
     }
+
+    /* --- Copilot messages --- */
+    .cop-msg-ai {
+      background: #171717; border: 1px solid #252525;
+      border-radius: 8px; padding: 11px 14px;
+      font-size: 13px; line-height: 1.65; color: #ccc;
+    }
+    .cop-msg-user {
+      background: #1a0e38; border: 1px solid #3b1d8a;
+      border-radius: 8px; padding: 11px 14px;
+      font-size: 13px; line-height: 1.65; color: #c4b5fd;
+      align-self: flex-end; max-width: 85%;
+    }
+
+    /* --- Copilot source cards --- */
+    .cop-sources { margin: 2px 0 6px 0; }
+    .cop-src-label { font-size: 10px; color: #555; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.04em; }
+    .cop-src-card { background: #111; border: 1px solid #222; border-radius: 6px; padding: 7px 9px; margin-bottom: 4px; }
+    .cop-src-title { font-size: 10px; color: #8b5cf6; font-weight: 700; margin-bottom: 3px; font-family: monospace; }
+    .cop-src-snippet { font-size: 10px; color: #666; line-height: 1.45; }
+
+    /* --- Telas --- */
+    .tela { display: none; }
+    .tela.active { display: flex; }
+
+    /* --- Animations --- */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.3s ease-out; }
+    @keyframes dot-blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+    .dot { width:5px; height:5px; border-radius:50%; background:#7c3aed; display:inline-block; margin:0 2px; animation: dot-blink 1.2s infinite; }
+    .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+
+    /* --- Editor layout --- */
+    #tela2 { display:none; height:100dvh; flex-direction:column; overflow:hidden; }
+    #tela2.active { display:flex; }
+    #editor-main { flex:1; overflow:hidden; display:grid; grid-template-columns:1fr; transition:grid-template-columns 0.2s; }
+    #editor-main.copilot-open { grid-template-columns: 1fr 320px; }
+    @media(max-width:767px) { #editor-main.copilot-open { grid-template-columns:1fr; } }
+
+    /* Copilot panel */
+    #copilot-panel { display:none; background:#0f0f0f; border-left:1px solid #1e1e1e; flex-direction:column; overflow:hidden; }
+    #editor-main.copilot-open #copilot-panel { display:flex; }
+
+    /* On mobile, copilot overlays */
+    @media(max-width:767px) {
+      #copilot-panel { position:fixed; right:0; top:0; bottom:0; width:85vw; z-index:50; border-left:1px solid #333; }
+      #editor-main.copilot-open #copilot-panel { display:flex; }
+    }
+
+    /* Confirm card */
+    .conf-card { background:#111; border:1px solid #222; border-radius:9px; padding:14px; }
+    .conf-card .label { font-size:10px; color:#444; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px; }
+    .conf-card .value { font-size:14px; color:#e0e0e0; }
   </style>
 </head>
-<body class="bg-white min-h-screen flex flex-col">
+<body>
 
-<!-- TELA 1: Inicial -->
-<div id="tela1" class="screen active flex-col min-h-screen">
-  <header class="bg-[#1B3A6B] text-white px-5 py-4 shadow">
-    <div class="flex items-center gap-2">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      <h1 class="text-2xl font-bold tracking-tight">3Notes.AI</h1>
-    </div>
-    <p class="text-sm text-blue-200 mt-1">Reporte um problema de manutenção</p>
-  </header>
-  <main class="flex-1 p-5 flex flex-col gap-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Seu setor</label>
-      <select id="setor-inicial" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option value="">Selecione o setor...</option>
-        <option>UTI</option>
-        <option>Emergência</option>
-        <option>Centro Cirúrgico</option>
-        <option>Enfermaria</option>
-        <option>Radiologia</option>
-        <option>Laboratório</option>
-        <option>Farmácia</option>
-        <option>Recepção</option>
-        <option>Outro</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Descreva o problema</label>
-      <textarea id="descricao-inicial" rows="4"
-        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-        placeholder="Ex: A bomba de infusão da UTI está emitindo alarme e não infunde o soro..."></textarea>
-    </div>
-    <button id="btn-iniciar" class="mt-2 w-full bg-[#1B3A6B] hover:bg-blue-900 text-white font-semibold text-lg py-4 rounded-2xl transition active:scale-95">
-      Iniciar relato
-    </button>
-  </main>
-</div>
+<!-- ══════════════════════════════════════════════
+     TELA 1 — Landing
+══════════════════════════════════════════════ -->
+<section id="tela1" class="tela active min-h-screen flex-col items-center justify-center px-6">
+  <div class="text-center max-w-sm w-full fade-up">
 
-<!-- TELA 2: Chat com IA -->
-<div id="tela2" class="screen flex-col min-h-screen">
-  <header class="bg-[#1B3A6B] text-white px-5 py-4 shadow flex items-center gap-3">
-    <button onclick="voltarTela1()" class="p-1">
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
-    <div>
-      <h1 class="text-lg font-bold">3Notes.AI</h1>
-      <p class="text-xs text-blue-200">Assistente de manutenção</p>
+    <!-- Logo -->
+    <div class="flex items-center justify-center gap-3 mb-3">
+      <div style="width:44px;height:44px;background:#7c3aed;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="white"/>
+          <rect x="12" y="3" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="3" y="12" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+          <rect x="12" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+          <rect x="16" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+        </svg>
+      </div>
+      <span style="font-size:26px;font-weight:800;color:#f0f0f0;letter-spacing:-0.03em;">3Notes<span style="color:#8b5cf6;">.AI</span></span>
     </div>
-  </header>
-  <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
-  <div id="erro-chat" class="hidden mx-4 mb-2 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
-    Serviço temporariamente indisponível. Tente novamente.
+
+    <p style="color:#444;font-size:13px;margin-bottom:48px;">Gestão de conhecimento em manutenção hospitalar</p>
+
+    <!-- CTA -->
+    <button onclick="abrirNotebook()"
+      style="width:100%;background:#7c3aed;color:white;border:none;padding:16px 24px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.15s;box-shadow:0 0 30px rgba(124,58,237,0.25);"
+      onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
+      <span style="font-size:20px;font-weight:300;">+</span>
+      Novo Chamado
+    </button>
+
+    <p style="color:#2a2a2a;font-size:11px;margin-top:32px;">Gemma 4 · Ollama · ChromaDB · RAG</p>
   </div>
-  <div class="border-t bg-white px-3 py-3 flex gap-2 items-end">
-    <div class="flex-1">
-      <textarea id="msg-input" rows="1" placeholder="Digite sua mensagem..."
-        class="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none max-h-32 overflow-y-auto"></textarea>
-    </div>
-    <button id="btn-enviar" class="flex-shrink-0 bg-[#1B3A6B] hover:bg-blue-900 text-white p-3 rounded-2xl transition active:scale-95">
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-      </svg>
-    </button>
-  </div>
-</div>
+</section>
 
-<!-- TELA 3: Preview .md estilo Obsidian -->
-<div id="tela3" class="screen flex-col min-h-screen">
-  <header class="bg-[#1B3A6B] text-white px-5 py-4 shadow flex items-center gap-2">
-    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    <div>
-      <h1 class="text-lg font-bold">Revisar nota</h1>
-      <p class="text-xs text-blue-200">Ajuste antes de salvar na base de conhecimento</p>
+
+<!-- ══════════════════════════════════════════════
+     TELA 2 — Notebook Editor
+══════════════════════════════════════════════ -->
+<section id="tela2">
+
+  <!-- Top bar -->
+  <header style="background:#0f0f0f;border-bottom:1px solid #1a1a1a;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button onclick="voltarInicio()" style="background:none;border:none;color:#555;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 0;">
+        ← Início
+      </button>
+      <span style="color:#252525;font-size:16px;">|</span>
+      <span id="header-id" style="color:#666;font-size:13px;font-family:monospace;"></span>
     </div>
+    <button id="btn-copilot" onclick="toggleCopilot()"
+      style="display:flex;align-items:center;gap:6px;background:#181818;border:1px solid #2a2a2a;color:#666;padding:6px 13px;border-radius:7px;font-size:12px;cursor:pointer;transition:all 0.15s;">
+      <span style="font-size:14px;">🤖</span> Copiloto
+    </button>
   </header>
 
-  <main class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+  <!-- Editor grid -->
+  <div id="editor-main">
 
-    <!-- Título editável -->
-    <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Título da nota</label>
-      <input id="titulo-input" type="text"
-        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="Título da nota..." />
-    </div>
+    <!-- ── Notebook Panel ── -->
+    <div id="notebook-panel" style="overflow-y:auto;padding:28px 32px;background:#0d0d0d;">
 
-    <!-- Tags -->
-    <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tags</label>
-      <div id="tags-container" class="flex flex-wrap gap-2 mb-2"></div>
-      <div class="flex gap-2">
-        <input id="tag-input" type="text" placeholder="Adicionar tag..."
-          class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-        <button id="btn-add-tag" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium px-3 py-2 rounded-xl text-sm transition">
-          + Tag
+      <!-- Document title (ID) -->
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;align-items:baseline;gap:10px;">
+          <span id="doc-id" style="font-size:24px;font-weight:800;color:#f0f0f0;font-family:monospace;letter-spacing:-0.03em;"></span>
+          <span style="font-size:11px;color:#333;font-weight:500;padding:2px 8px;background:#181818;border:1px solid #252525;border-radius:4px;">rascunho</span>
+        </div>
+        <div style="width:100%;height:1px;background:linear-gradient(to right,#2a2a2a,transparent);margin-top:12px;"></div>
+      </div>
+
+      <hr class="nb-hr" style="margin-top:0;">
+
+      <!-- ── Campos estruturados ── -->
+      <div style="margin-bottom:26px;">
+        <div class="sec-label">Informações do Chamado</div>
+
+        <!-- Nome (full width) -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span>👤</span> Seu nome
+          </label>
+          <input id="campo-nome" type="text" class="nb-input" placeholder="Nome de quem está reportando">
+        </div>
+
+        <!-- Setor + Patrimônio -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span>🏥</span> Setor
+            </label>
+            <select id="campo-setor" class="nb-input">
+              <option value="">Selecionar...</option>
+              <option>UTI</option>
+              <option>Emergência</option>
+              <option>Centro Cirúrgico</option>
+              <option>Radiologia</option>
+              <option>Enfermaria</option>
+              <option>Maternidade</option>
+              <option>Farmácia</option>
+              <option>Laboratório</option>
+              <option>Hemodinâmica</option>
+              <option>Neonatologia</option>
+              <option>Oncologia</option>
+              <option>Pronto Socorro</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span>🔧</span> Patrimônio
+            </label>
+            <input id="campo-patrimonio" type="text" class="nb-input" placeholder="Ex: VM-001">
+          </div>
+        </div>
+
+        <!-- Andar + Sala -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div>
+            <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span>📍</span> Andar
+            </label>
+            <input id="campo-andar" type="text" class="nb-input" placeholder="Ex: 2º andar">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span>🚪</span> Sala / Leito
+            </label>
+            <input id="campo-sala" type="text" class="nb-input" placeholder="Ex: Sala 3, Leito 7">
+          </div>
+        </div>
+
+        <!-- Urgência -->
+        <div>
+          <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <span>🚨</span> Urgência
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="urg-btn urg-critico" onclick="setUrg('critico',this)">● Crítico</button>
+            <button class="urg-btn urg-alto"    onclick="setUrg('alto',this)">● Alto</button>
+            <button class="urg-btn urg-medio active" onclick="setUrg('medio',this)">● Médio</button>
+            <button class="urg-btn urg-baixo"   onclick="setUrg('baixo',this)">● Baixo</button>
+          </div>
+        </div>
+      </div>
+
+      <hr class="nb-hr">
+
+      <!-- ── Tags ── -->
+      <div style="margin-bottom:26px;">
+        <div class="sec-label">
+          🏷 Tags
+          <span id="tags-loading" style="display:none;color:#333;font-size:10px;font-weight:400;margin-left:8px;">analisando…</span>
+        </div>
+
+        <!-- Selected -->
+        <div id="tags-sel" style="display:flex;flex-wrap:wrap;gap:6px;min-height:26px;margin-bottom:10px;"></div>
+
+        <!-- Suggested (from AI) -->
+        <div id="tags-sug-wrap" style="margin-bottom:10px;display:none;">
+          <span style="font-size:11px;color:#444;margin-right:4px;">Sugestões IA →</span>
+          <span id="tags-sug" style="display:inline-flex;flex-wrap:wrap;gap:5px;"></span>
+        </div>
+
+        <!-- Manual add -->
+        <div style="display:flex;gap:8px;">
+          <input id="tag-input" type="text" class="nb-input" style="max-width:200px;font-size:12px;padding:6px 10px;" placeholder="+ tag personalizada">
+          <button onclick="addTagManual()" style="background:#1c1c1c;border:1px solid #2a2a2a;color:#777;padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;">Add</button>
+        </div>
+      </div>
+
+      <hr class="nb-hr">
+
+      <!-- ── Descrição ── -->
+      <div style="margin-bottom:30px;">
+        <div class="sec-label">📝 Descrição do Problema</div>
+        <textarea id="campo-desc" class="nb-textarea"
+          placeholder="Descreva o problema detalhadamente...&#10;&#10;O que está acontecendo? Quando começou?&#10;Há códigos de erro? O equipamento está em uso com paciente?"></textarea>
+      </div>
+
+      <!-- ── Actions ── -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:48px;">
+        <button onclick="voltarInicio()" style="background:none;border:none;color:#444;font-size:13px;cursor:pointer;">Cancelar</button>
+        <button onclick="verPrevia()" id="btn-previa"
+          style="background:#7c3aed;color:white;border:none;padding:11px 26px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.15s;"
+          onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
+          Ver Prévia do Chamado →
         </button>
       </div>
-    </div>
 
-    <!-- Metadata -->
-    <div class="bg-gray-50 rounded-xl border border-gray-200 p-3 flex flex-wrap gap-3 text-sm">
-      <div><span class="text-gray-500">Patrimônio:</span> <span id="meta-patrimonio" class="font-medium">—</span></div>
-      <div><span class="text-gray-500">Setor:</span> <span id="meta-setor" class="font-medium">—</span></div>
-      <div><span class="text-gray-500">Criticidade:</span> <span id="meta-criticidade" class="px-2 py-0.5 rounded-full text-xs font-bold">—</span></div>
     </div>
+    <!-- end notebook-panel -->
 
-    <!-- Preview .md -->
-    <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Preview da nota (.md)</label>
-      <div id="md-preview" class="md-preview"></div>
-      <div id="md-loading" class="hidden flex items-center gap-2 text-sm text-gray-500 mt-2">
-        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        Gerando nota com IA...
+    <!-- ── Copiloto Panel ── -->
+    <div id="copilot-panel">
+
+      <!-- Header -->
+      <div style="padding:14px 16px;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#7c3aed;"></div>
+          <span style="font-size:13px;font-weight:700;color:#e0e0e0;">Copiloto</span>
+          <span style="font-size:10px;color:#333;margin-left:auto;">Gemma 4 + RAG</span>
+          <button onclick="toggleCopilot()" style="background:none;border:none;color:#444;font-size:16px;cursor:pointer;line-height:1;">×</button>
+        </div>
       </div>
+
+      <!-- Tag suggestions from AI (reactive) -->
+      <div style="padding:12px 16px;border-bottom:1px solid #161616;flex-shrink:0;">
+        <div style="font-size:10px;color:#444;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Sugestões de Tags</div>
+        <div id="cop-tags" style="display:flex;flex-wrap:wrap;gap:5px;">
+          <span style="color:#333;font-size:12px;">Digite a descrição…</span>
+        </div>
+      </div>
+
+      <!-- Chat messages -->
+      <div id="cop-msgs" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div class="cop-msg-ai">
+          <strong style="color:#8b5cf6;font-size:11px;display:block;margin-bottom:4px;">🤖 Copiloto</strong>
+          Olá! Preencha os campos e descreava o problema — sugerirei tags e posso citar chamados anteriores similares da base de conhecimento.
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div style="padding:12px 16px;border-top:1px solid #1a1a1a;flex-shrink:0;display:flex;gap:8px;">
+        <input id="cop-input" type="text" class="nb-input" style="font-size:13px;flex:1;" placeholder="Pergunte ao copiloto…">
+        <button onclick="enviarCopiloto()"
+          style="background:#5b21b6;border:none;color:white;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:16px;flex-shrink:0;">→</button>
+      </div>
+
+    </div>
+    <!-- end copilot-panel -->
+
+  </div>
+  <!-- end editor-main -->
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     TELA 3 — Confirmação
+══════════════════════════════════════════════ -->
+<section id="tela3" class="tela flex-col" style="background:#0a0a0a;min-height:100vh;padding:28px 20px;">
+  <div style="max-width:680px;margin:0 auto;width:100%;">
+
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+      <button onclick="voltarEditor()" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;">← Editar</button>
+      <h1 style="font-size:18px;font-weight:800;color:#f0f0f0;">Confirmar Chamado</h1>
     </div>
 
-    <!-- Card boas práticas -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-      <p class="text-xs font-semibold text-blue-700 mb-2">💡 Boas práticas para notas eficazes</p>
-      <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
-        <li>Adicione tags específicas do equipamento (modelo, marca)</li>
-        <li>Quanto mais detalhes, melhor o sistema aprende</li>
-        <li>Use tags de setor para facilitar buscas futuras</li>
-      </ul>
+    <!-- Summary cards -->
+    <div id="conf-cards" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;"></div>
+
+    <!-- MD preview -->
+    <div style="margin-bottom:22px;">
+      <div class="sec-label">Prévia do arquivo .md</div>
+      <div class="md-preview" id="md-preview" style="max-height:420px;"></div>
     </div>
 
-  </main>
+    <!-- Actions -->
+    <div style="display:flex;gap:12px;justify-content:flex-end;">
+      <button onclick="voltarEditor()" style="background:#181818;border:1px solid #2a2a2a;color:#777;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;">← Editar</button>
+      <button onclick="confirmarChamado()" id="btn-confirmar"
+        style="background:#7c3aed;color:white;border:none;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+        ✓ Registrar Chamado
+      </button>
+    </div>
 
-  <div class="border-t bg-white px-4 py-4 flex flex-col gap-2">
-    <button id="btn-confirmar" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold text-lg py-4 rounded-2xl transition active:scale-95">
-      ✓ Confirmar e salvar
-    </button>
-    <button id="btn-corrigir" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-2xl transition active:scale-95">
-      ← Corrigir informação
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     TELA 4 — Sucesso
+══════════════════════════════════════════════ -->
+<section id="tela4" class="tela flex-col items-center justify-center" style="background:#0a0a0a;min-height:100vh;padding:32px;">
+  <div class="text-center fade-up" style="max-width:380px;width:100%;">
+
+    <div style="width:66px;height:66px;border-radius:50%;background:#042a14;border:2px solid #14532d;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;">✓</div>
+
+    <h2 style="font-size:22px;font-weight:800;color:#f0f0f0;margin-bottom:8px;">Chamado Registrado!</h2>
+    <div id="suc-id" style="font-size:14px;color:#8b5cf6;font-family:monospace;margin-bottom:22px;"></div>
+
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:18px;margin-bottom:20px;text-align:left;">
+      <div id="suc-details" style="font-size:13px;color:#666;line-height:2.1;"></div>
+    </div>
+
+    <div id="suc-path" style="font-size:11px;color:#333;font-family:monospace;margin-bottom:26px;word-break:break-all;"></div>
+
+    <button onclick="novoRelatorio()"
+      style="background:#7c3aed;color:white;border:none;padding:13px 32px;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;width:100%;">
+      + Novo Chamado
     </button>
   </div>
-</div>
+</section>
 
-<!-- TELA 4: Sucesso -->
-<div id="tela4" class="screen flex-col min-h-screen items-center justify-center p-8 text-center">
-  <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-    <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-    </svg>
-  </div>
-  <h2 class="text-2xl font-bold text-gray-900 mb-2">Chamado registrado!</h2>
-  <p id="msg-sucesso" class="text-gray-600 text-lg mb-2">O técnico foi notificado.</p>
-  <p id="msg-md-path" class="text-xs text-gray-400 font-mono mb-8"></p>
-  <button onclick="reiniciar()" class="bg-[#1B3A6B] hover:bg-blue-900 text-white font-semibold text-lg px-8 py-4 rounded-2xl transition active:scale-95">
-    Reportar outro problema
-  </button>
-</div>
 
 <script>
   const API = '';
-  let historico = [];
-  let dadosChamado = null;
-  let tagsAtuais = [];
 
-  // ---- Utilitários ----
-  function mostrarTela(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+  // ─── State ───────────────────────────────────────────────
+  let urgencia = 'medio';
+  let tagsSelected = [];
+  let tagsSuggested = [];
+  let docId = '';
+  let copilotHistory = [];
+  let copilotOpen = false;
+  let debounce = null;
+
+  // ─── Navigation ──────────────────────────────────────────
+  function show(id) {
+    ['tela1','tela2','tela3','tela4'].forEach(t => {
+      const el = document.getElementById(t);
+      if (t === 'tela2') { el.classList.remove('active'); el.style.display = 'none'; }
+      else { el.classList.remove('active'); }
+    });
+    const el = document.getElementById(id);
+    if (id === 'tela2') { el.style.display = 'flex'; el.classList.add('active'); }
+    else { el.classList.add('active'); }
+  }
+  function voltarInicio() { show('tela1'); }
+  function voltarEditor() { show('tela2'); }
+
+  // ─── Generate ID ─────────────────────────────────────────
+  function gerarId() {
+    const y = new Date().getFullYear();
+    const n = String(1000 + Math.floor(Math.random() * 8999)).padStart(4,'0');
+    return `CHM-${y}-${n}`;
   }
 
-  function voltarTela1() { mostrarTela('tela1'); }
+  // ─── Open notebook ───────────────────────────────────────
+  function abrirNotebook() {
+    docId = gerarId();
+    document.getElementById('doc-id').textContent = docId;
+    document.getElementById('header-id').textContent = docId;
 
-  function reiniciar() {
-    historico = [];
-    dadosChamado = null;
-    tagsAtuais = [];
-    document.getElementById('descricao-inicial').value = '';
-    document.getElementById('setor-inicial').value = '';
-    document.getElementById('chat-messages').innerHTML = '';
-    document.getElementById('msg-input').value = '';
-    document.getElementById('md-preview').textContent = '';
-    mostrarTela('tela1');
+    // Reset fields
+    ['campo-nome','campo-setor','campo-patrimonio','campo-andar','campo-sala','campo-desc'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el.tagName === 'SELECT') el.value = '';
+      else el.value = '';
+    });
+
+    urgencia = 'medio';
+    tagsSelected = [];
+    copilotHistory = [];
+    renderTagsSel();
+
+    // Pre-defined hospital maintenance tags — visible immediately
+    tagsSuggested = [
+      'alarme', 'não-liga', 'falha-elétrica', 'bateria', 'display',
+      'sensor', 'calibração', 'vazamento', 'superaquecimento', 'ruído',
+      'cabo', 'preventiva', 'corretiva', 'equipamento-crítico', 'urgente'
+    ];
+    renderTagsSug();
+
+    document.querySelectorAll('.urg-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.urg-medio').classList.add('active');
+
+    // cop-tags is updated by renderTagsSug() above
+    document.getElementById('cop-msgs').innerHTML = `
+      <div class="cop-msg-ai">
+        <strong style="color:#8b5cf6;font-size:11px;display:block;margin-bottom:4px;">🤖 Copiloto</strong>
+        Olá! Preencha os campos e descreva o problema — sugerirei tags e posso consultar chamados anteriores similares.
+      </div>`;
+
+    show('tela2');
+    document.getElementById('campo-nome').focus();
   }
 
-  // ---- Chat UI ----
-  function adicionarBolha(texto, lado) {
-    const container = document.getElementById('chat-messages');
-    const wrapper = document.createElement('div');
-    wrapper.className = `flex ${lado === 'user' ? 'justify-end' : 'justify-start'}`;
-    const bolha = document.createElement('div');
-    bolha.className = `max-w-[80%] px-4 py-3 text-base ${lado === 'user' ? 'bubble-user' : 'bubble-ai text-gray-900'}`;
-    const p = document.createElement('p');
-    p.style.whiteSpace = 'pre-wrap';
-    p.textContent = texto;
-    bolha.appendChild(p);
-    wrapper.appendChild(bolha);
-    container.appendChild(wrapper);
-    container.scrollTop = container.scrollHeight;
-    return wrapper;
+  // ─── Urgência ─────────────────────────────────────────────
+  function setUrg(nivel, btn) {
+    urgencia = nivel;
+    document.querySelectorAll('.urg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   }
 
-  function mostrarTyping() {
-    const container = document.getElementById('chat-messages');
-    const wrapper = document.createElement('div');
-    wrapper.className = 'flex justify-start';
-    wrapper.id = 'typing-indicator';
-    wrapper.innerHTML = `<div class="bubble-ai px-4 py-3 text-gray-500 typing">
-      <span>●</span><span>●</span><span>●</span>
-    </div>`;
-    container.appendChild(wrapper);
-    container.scrollTop = container.scrollHeight;
-  }
-
-  function removerTyping() { document.getElementById('typing-indicator')?.remove(); }
-
-  // ---- Tags (Tela 3) ----
-  function renderizarTags() {
-    const container = document.getElementById('tags-container');
-    container.innerHTML = '';
-    tagsAtuais.forEach((tag, i) => {
-      const chip = document.createElement('span');
-      chip.className = 'tag-chip';
-      chip.innerHTML = `${tag} <button onclick="removerTag(${i})" title="Remover">×</button>`;
-      container.appendChild(chip);
+  // ─── Tags ─────────────────────────────────────────────────
+  function renderTagsSel() {
+    const c = document.getElementById('tags-sel');
+    c.innerHTML = '';
+    tagsSelected.forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'tag-selected';
+      span.innerHTML = `${t} <span onclick="removeTag('${t}')" style="cursor:pointer;opacity:.6;font-size:11px;">×</span>`;
+      c.appendChild(span);
     });
   }
 
-  function removerTag(i) {
-    tagsAtuais.splice(i, 1);
-    renderizarTags();
-    atualizarMdPreview();
+  function renderTagsSug() {
+    const c = document.getElementById('tags-sug');
+    c.innerHTML = '';
+    const cop = document.getElementById('cop-tags');
+    cop.innerHTML = '';
+    const avail = tagsSuggested.filter(t => !tagsSelected.includes(t));
+    if (!avail.length) {
+      cop.innerHTML = '<span style="color:#333;font-size:12px;">Nenhuma sugestão adicional.</span>';
+      return;
+    }
+    avail.forEach(t => {
+      [c, cop].forEach(container => {
+        const span = document.createElement('span');
+        span.className = 'tag-suggested';
+        span.textContent = `+ ${t}`;
+        span.onclick = () => { addTag(t); renderTagsSug(); };
+        container.appendChild(span);
+      });
+    });
+    document.getElementById('tags-sug-wrap').style.display = 'block';
   }
 
-  document.getElementById('btn-add-tag').addEventListener('click', () => {
-    const input = document.getElementById('tag-input');
-    const tag = input.value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-áéíóúãõâêîôûàèìòùç]/g, '');
-    if (tag && !tagsAtuais.includes(tag)) {
-      tagsAtuais.push(tag);
-      renderizarTags();
-      atualizarMdPreview();
-    }
+  function addTag(t) {
+    t = t.toLowerCase().trim().replace(/\s+/g, '-');
+    if (t && !tagsSelected.includes(t)) { tagsSelected.push(t); renderTagsSel(); }
+  }
+
+  function removeTag(t) {
+    tagsSelected = tagsSelected.filter(x => x !== t);
+    renderTagsSel();
+    renderTagsSug();
+  }
+
+  function addTagManual() {
+    const el = document.getElementById('tag-input');
+    addTag(el.value);
+    el.value = '';
+  }
+
+  async function buscarTagsSug() {
+    const desc = document.getElementById('campo-desc').value.trim();
+    if (desc.length < 20) return;
+    document.getElementById('tags-loading').style.display = 'inline';
+    try {
+      const r = await fetch(`${API}/ai/sugerir-tags`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          equipamento_descricao: document.getElementById('campo-patrimonio').value || 'Equipamento',
+          descricao_problema: desc,
+          setor: document.getElementById('campo-setor').value || ''
+        })
+      });
+      if (r.ok) { const d = await r.json(); tagsSuggested = d.tags || []; renderTagsSug(); }
+    } catch {}
+    document.getElementById('tags-loading').style.display = 'none';
+  }
+
+  // ─── Copiloto ─────────────────────────────────────────────
+  function toggleCopilot() {
+    copilotOpen = !copilotOpen;
+    const main = document.getElementById('editor-main');
+    const btn  = document.getElementById('btn-copilot');
+    main.classList.toggle('copilot-open', copilotOpen);
+    btn.style.borderColor = copilotOpen ? '#5b21b6' : '#2a2a2a';
+    btn.style.color = copilotOpen ? '#a78bfa' : '#666';
+  }
+
+  function addCopMsg(texto, lado) {
+    const c = document.getElementById('cop-msgs');
+    const d = document.createElement('div');
+    d.className = lado === 'ai' ? 'cop-msg-ai' : 'cop-msg-user';
+    if (lado === 'ai') d.innerHTML = `<strong style="color:#8b5cf6;font-size:11px;display:block;margin-bottom:4px;">🤖 Copiloto</strong><span>${texto}</span>`;
+    else d.textContent = texto;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+    return d;
+  }
+
+  async function enviarCopiloto() {
+    const input = document.getElementById('cop-input');
+    const txt = input.value.trim();
+    if (!txt) return;
     input.value = '';
-  });
 
-  document.getElementById('tag-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btn-add-tag').click(); }
-  });
+    addCopMsg(txt, 'user');
+    copilotHistory.push({role:'user', content: txt});
 
-  document.getElementById('titulo-input').addEventListener('input', () => {
-    atualizarMdPreview();
-  });
+    const div = addCopMsg('', 'ai');
+    const span = div.querySelector('span');
 
-  // ---- Preview .md ----
-  let previewTimer = null;
-  function atualizarMdPreview() {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(async () => {
-      if (!dadosChamado) return;
-      const titulo = document.getElementById('titulo-input').value.trim() || dadosChamado.equipamento_descricao + ' — Problema reportado';
+    // Enrich with form context
+    const ctx = `[Contexto: setor=${document.getElementById('campo-setor').value||'—'}, patrimônio=${document.getElementById('campo-patrimonio').value||'—'}, descrição="${document.getElementById('campo-desc').value.substring(0,150)}"]`;
+
+    let full = '';
+    try {
+      const resp = await fetch(`${API}/ai/chat/stream`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mensagem:`${ctx}\n\n${txt}`, historico: copilotHistory.slice(-4), modo:'copiloto'})
+      });
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      while(true) {
+        const {done, value} = await reader.read();
+        if(done) break;
+        buf += dec.decode(value, {stream:true});
+        const lines = buf.split('\n'); buf = lines.pop();
+        for(const line of lines) {
+          if(!line.startsWith('data: ')) continue;
+          try {
+            const ch = JSON.parse(line.slice(6));
+            if(ch.token) { full += ch.token; span.textContent = full; div.scrollIntoView({block:'end'}); }
+          } catch {}
+        }
+      }
+      copilotHistory.push({role:'assistant', content: full});
+      // Render source cards from RAG
       try {
-        const resp = await fetch(`${API}/ai/preview-md`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...dadosChamado,
-            titulo,
-            tags: tagsAtuais,
-          }),
-        });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        document.getElementById('md-preview').textContent = data.conteudo_md;
+        const sr = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(txt)}`);
+        if (sr.ok) {
+          const fontes = await sr.json();
+          const mostradas = fontes.slice(0, 3).filter(f => f.trecho && f.trecho.length > 20);
+          if (mostradas.length) {
+            const srcDiv = document.createElement('div');
+            srcDiv.className = 'cop-sources';
+            const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            srcDiv.innerHTML = `<div class="cop-src-label">📎 Fontes consultadas</div>` +
+              mostradas.map(f => `<div class="cop-src-card"><div class="cop-src-title">${esc(f.fonte||'—')}</div><div class="cop-src-snippet">${esc((f.trecho||'').slice(0,220))}</div></div>`).join('');
+            div.after(srcDiv);
+            document.getElementById('cop-msgs').scrollTop = 9999;
+          }
+        }
       } catch {}
-    }, 600);
+    } catch { span.textContent = 'Erro ao conectar.'; }
   }
 
-  // ---- Tela 1 → iniciar chat ----
-  document.getElementById('btn-iniciar').addEventListener('click', async () => {
-    const setor = document.getElementById('setor-inicial').value;
-    const descricao = document.getElementById('descricao-inicial').value.trim();
-    if (!descricao) { alert('Por favor, descreva o problema.'); return; }
-
-    const mensagem = setor ? `Estou reportando do setor ${setor}. ${descricao}` : descricao;
-    historico = [];
-    mostrarTela('tela2');
-    adicionarBolha(descricao, 'user');
-    await enviarMensagem(mensagem);
-  });
-
-  // ---- Enviar mensagem no chat ----
-  async function enviarMensagem(texto) {
-    const erroEl = document.getElementById('erro-chat');
-    erroEl.classList.add('hidden');
-    mostrarTyping();
-
-    try {
-      const resp = await fetch(`${API}/ai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: texto, historico }),
-      });
-      if (!resp.ok) throw new Error();
-      const data = await resp.json();
-
-      historico.push({ role: 'user', content: texto });
-      historico.push({ role: 'assistant', content: data.resposta });
-      removerTyping();
-      adicionarBolha(data.resposta, 'ai');
-
-      if (data.action === 'criar_chamado' && data.dados) {
-        dadosChamado = { ...data.dados, conversa_json: JSON.stringify(historico) };
-        setTimeout(prepararTela3, 600);
-      }
-    } catch {
-      removerTyping();
-      erroEl.classList.remove('hidden');
-    }
+  // ─── Preview ──────────────────────────────────────────────
+  function critColor(n) {
+    return {critico:'#fca5a5', alto:'#fdba74', medio:'#fcd34d', baixo:'#6ee7b7'}[n] || '#e0e0e0';
   }
 
-  document.getElementById('btn-enviar').addEventListener('click', async () => {
-    const input = document.getElementById('msg-input');
-    const texto = input.value.trim();
-    if (!texto) return;
-    adicionarBolha(texto, 'user');
-    input.value = '';
-    await enviarMensagem(texto);
-  });
+  function mdLocal(nome, setor, pat, andar, sala, desc) {
+    const now = new Date().toISOString().split('.')[0];
+    const local = [andar, sala].filter(Boolean).join(', ') || setor;
+    return `---
+id: ${docId}
+titulo: "${desc.substring(0,60).replace(/"/g,"'")}"
+tags: ${JSON.stringify(tagsSelected)}
+patrimonio: ${pat || 'N/A'}
+setor: ${setor}
+local: ${local}
+criticidade: ${urgencia}
+status: aberto
+aberto_por: ${nome}
+criado_em: ${now}
+resolvido_em: null
+---
 
-  document.getElementById('msg-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('btn-enviar').click(); }
-  });
+## Problema
 
-  // ---- Tela 3: Preparar preview .md ----
-  async function prepararTela3() {
-    if (!dadosChamado) return;
-    mostrarTela('tela3');
+${desc}
 
-    const d = dadosChamado;
+## Tags sugeridas
 
-    // Metadata badges
-    document.getElementById('meta-patrimonio').textContent = d.patrimonio || '—';
-    document.getElementById('meta-setor').textContent = d.setor || '—';
-    const crit = document.getElementById('meta-criticidade');
-    crit.textContent = (d.criticidade_sugerida || 'médio').toUpperCase();
-    const cores = { critico: 'bg-red-600 text-white', alto: 'bg-orange-600 text-white', medio: 'bg-yellow-600 text-white', baixo: 'bg-green-600 text-white' };
-    crit.className = `px-2 py-0.5 rounded-full text-xs font-bold ${cores[d.criticidade_sugerida] || 'bg-gray-300 text-gray-800'}`;
+${tagsSelected.map(t=>'`'+t+'`').join(', ') || '—'}`;
+  }
 
-    // Show loading
-    document.getElementById('md-preview').textContent = '';
-    document.getElementById('md-loading').classList.remove('hidden');
+  async function verPrevia() {
+    const nome = document.getElementById('campo-nome').value.trim();
+    const setor = document.getElementById('campo-setor').value;
+    const pat   = document.getElementById('campo-patrimonio').value.trim();
+    const desc  = document.getElementById('campo-desc').value.trim();
+    const andar = document.getElementById('campo-andar').value.trim();
+    const sala  = document.getElementById('campo-sala').value.trim();
 
-    // Fetch title, tags, and md preview in parallel
+    if (!nome)  { alert('Informe seu nome.'); document.getElementById('campo-nome').focus(); return; }
+    if (!setor) { alert('Selecione o setor.'); document.getElementById('campo-setor').focus(); return; }
+    if (desc.length < 10) { alert('Descreva o problema com mais detalhes.'); document.getElementById('campo-desc').focus(); return; }
+
+    // Confirmation cards
+    const local = [andar, sala].filter(Boolean).join(' / ') || setor;
+    document.getElementById('conf-cards').innerHTML = `
+      <div class="conf-card"><div class="label">ID</div><div class="value" style="font-family:monospace;color:#a78bfa;">${docId}</div></div>
+      <div class="conf-card"><div class="label">Setor</div><div class="value">${setor}</div></div>
+      <div class="conf-card"><div class="label">Patrimônio</div><div class="value" style="font-family:monospace;">${pat||'—'}</div></div>
+      <div class="conf-card"><div class="label">Urgência</div><div class="value" style="font-weight:700;color:${critColor(urgencia)};">${urgencia.toUpperCase()}</div></div>
+      <div class="conf-card"><div class="label">Local</div><div class="value">${local}</div></div>
+      <div class="conf-card"><div class="label">Tags</div><div class="value" style="font-size:12px;">${tagsSelected.length ? tagsSelected.join(', ') : '—'}</div></div>
+    `;
+
+    // MD preview (try server, fallback local)
+    let md = mdLocal(nome, setor, pat, andar, sala, desc);
     try {
-      const [tituloResp, tagsResp] = await Promise.all([
-        fetch(`${API}/ai/sugerir-titulo`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ equipamento_descricao: d.equipamento_descricao, descricao_problema: d.descricao_problema }),
-        }),
-        fetch(`${API}/ai/sugerir-tags`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ equipamento_descricao: d.equipamento_descricao, descricao_problema: d.descricao_problema, setor: d.setor }),
-        }),
-      ]);
-
-      const tituloData = tituloResp.ok ? await tituloResp.json() : { titulo: `${d.equipamento_descricao} — Problema reportado` };
-      const tagsData = tagsResp.ok ? await tagsResp.json() : { tags: [] };
-
-      document.getElementById('titulo-input').value = tituloData.titulo || '';
-      tagsAtuais = tagsData.tags || [];
-      renderizarTags();
-
-      // Now fetch preview with title + tags
-      const previewResp = await fetch(`${API}/ai/preview-md`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(`${API}/ai/preview-md`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          ...d,
-          titulo: tituloData.titulo || d.equipamento_descricao,
-          tags: tagsAtuais,
-        }),
+          equipamento_descricao: pat || 'Equipamento hospitalar',
+          patrimonio: pat || 'N/A',
+          setor, setor_reportador: setor, aberto_por: nome,
+          descricao_problema: desc + (andar||sala ? `\nLocal: ${local}` : ''),
+          criticidade_sugerida: urgencia,
+          titulo: docId, tags: tagsSelected, conversa_json: null
+        })
       });
-      if (previewResp.ok) {
-        const previewData = await previewResp.json();
-        document.getElementById('md-preview').textContent = previewData.conteudo_md;
-      }
-    } catch (e) {
-      document.getElementById('md-preview').textContent = '— Erro ao gerar preview. Você ainda pode confirmar. —';
-    } finally {
-      document.getElementById('md-loading').classList.add('hidden');
-    }
+      if(r.ok) { const d = await r.json(); md = d.conteudo_md; }
+    } catch {}
+
+    document.getElementById('md-preview').textContent = md;
+    show('tela3');
   }
 
-  document.getElementById('btn-corrigir').addEventListener('click', () => {
-    mostrarTela('tela2');
-    adicionarBolha('Preciso corrigir alguma informação.', 'user');
-    enviarMensagem('Preciso corrigir alguma informação.');
-  });
-
-  // ---- Confirmar e salvar ----
-  document.getElementById('btn-confirmar').addEventListener('click', async () => {
-    if (!dadosChamado) return;
+  // ─── Confirmar ────────────────────────────────────────────
+  async function confirmarChamado() {
     const btn = document.getElementById('btn-confirmar');
-    btn.disabled = true;
-    btn.textContent = 'Salvando nota...';
+    btn.disabled = true; btn.textContent = 'Registrando…';
 
-    const titulo_final = document.getElementById('titulo-input').value.trim() || dadosChamado.equipamento_descricao;
+    const nome  = document.getElementById('campo-nome').value.trim();
+    const setor = document.getElementById('campo-setor').value;
+    const pat   = document.getElementById('campo-patrimonio').value.trim();
+    const desc  = document.getElementById('campo-desc').value.trim();
+    const andar = document.getElementById('campo-andar').value.trim();
+    const sala  = document.getElementById('campo-sala').value.trim();
+    const local = [andar, sala].filter(Boolean).join(', ');
 
     try {
-      const resp = await fetch(`${API}/ai/confirmar-chamado`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(`${API}/ai/confirmar-chamado`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          ...dadosChamado,
-          titulo_final,
-          tags_finais: tagsAtuais,
-        }),
+          equipamento_descricao: pat || 'Equipamento hospitalar',
+          patrimonio: pat || 'N/A',
+          setor, setor_reportador: setor, aberto_por: nome,
+          descricao_problema: desc + (local ? `\nLocal: ${local}` : ''),
+          criticidade_sugerida: urgencia,
+          titulo_final: docId, tags_finais: tagsSelected, conversa_json: null
+        })
       });
-      if (!resp.ok) throw new Error();
-      const data = await resp.json();
-
-      document.getElementById('msg-sucesso').textContent = `Chamado #${data.id} registrado! O técnico foi notificado.`;
-      document.getElementById('msg-md-path').textContent = data.md_path ? `Nota salva em: ${data.md_path}` : '';
-      mostrarTela('tela4');
+      if(!r.ok) throw new Error();
+      const data = await r.json();
+      mostrarSucesso(data);
     } catch {
-      btn.disabled = false;
-      btn.textContent = '✓ Confirmar e salvar';
-      alert('Erro ao registrar chamado. Tente novamente.');
+      btn.disabled = false; btn.textContent = '✓ Registrar Chamado';
+      alert('Erro ao registrar. Verifique a conexão.');
     }
+  }
+
+  function mostrarSucesso(data) {
+    document.getElementById('suc-id').textContent = `Chamado #${data.id} · ${docId}`;
+    document.getElementById('suc-details').innerHTML = `
+      <div>👤 ${document.getElementById('campo-nome').value}</div>
+      <div>🏥 ${document.getElementById('campo-setor').value}</div>
+      <div>🚨 Urgência: <strong style="color:${critColor(urgencia)}">${urgencia.toUpperCase()}</strong></div>
+      <div>🏷 ${tagsSelected.length} tag${tagsSelected.length===1?'':'s'} indexadas</div>
+    `;
+    document.getElementById('suc-path').textContent = data.md_path ? `📁 ${data.md_path}` : '';
+    show('tela4');
+  }
+
+  function novoRelatorio() { abrirNotebook(); }
+
+  // ─── Event listeners ──────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tag-input').addEventListener('keydown', e => { if(e.key==='Enter') addTagManual(); });
+    document.getElementById('cop-input').addEventListener('keydown', e => { if(e.key==='Enter') enviarCopiloto(); });
+    document.getElementById('campo-desc').addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(buscarTagsSug, 1500);
+    });
+    // Open copilot by default on large screens
+    if (window.innerWidth >= 900) toggleCopilot();
   });
 </script>
 </body>

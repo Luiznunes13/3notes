@@ -1,7 +1,8 @@
 import json
 import re
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 class ChatRequest(BaseModel):
     mensagem: str
     historico: list[dict] = []
+    modo: str = "intake"  # "intake" | "copiloto"
 
 
 class ConfirmarChamadoRequest(BaseModel):
@@ -66,13 +68,38 @@ def _extract_action(text: str) -> tuple[Optional[str], Optional[dict]]:
     return None, None
 
 
+def _get_system_prompt(modo: str):
+    from app.services.ollama_service import SYSTEM_PROMPT_COPILOT, SYSTEM_PROMPT_INTAKE
+    return SYSTEM_PROMPT_COPILOT if modo == "copiloto" else SYSTEM_PROMPT_INTAKE
+
+
 @router.post("/chat")
 async def chat(req: ChatRequest):
     messages = list(req.historico)
     messages.append({"role": "user", "content": req.mensagem})
-    resposta = await ollama_service.chat(messages)
+    resposta = await ollama_service.chat(messages, system_prompt=_get_system_prompt(req.modo))
     action, dados = _extract_action(resposta)
     return {"resposta": resposta, "action": action, "dados": dados}
+
+
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """Streaming chat endpoint — returns text/event-stream with SSE chunks."""
+    messages = list(req.historico)
+    messages.append({"role": "user", "content": req.mensagem})
+    system_prompt = _get_system_prompt(req.modo)
+    full_response = []
+
+    async def generate() -> AsyncGenerator[str, None]:
+        async for token in ollama_service.chat_stream(messages, system_prompt=system_prompt):
+            full_response.append(token)
+            yield f"data: {json.dumps({'token': token})}\n\n"
+
+        complete = "".join(full_response)
+        action, dados = _extract_action(complete)
+        yield f"data: {json.dumps({'done': True, 'action': action, 'dados': dados})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @router.post("/sugerir-titulo")
@@ -179,6 +206,10 @@ async def confirmar_chamado(
     # 3. Generate and save .md
     ano = chamado.criado_em.year
     titulo_base = req.titulo_final or f"{req.equipamento_descricao} — Problema reportado"
+    # Strip any placeholder CHM-YYYY-NNNN prefix coming from the frontend
+    titulo_base = re.sub(r"^CHM-\d{4}-\d+\s*", "", titulo_base).strip()
+    if not titulo_base:
+        titulo_base = f"{req.equipamento_descricao} — Problema reportado"
     titulo_com_id = f"CHM-{ano}-{chamado.id:04d} {titulo_base}"
 
     dados_md = {
@@ -196,37 +227,19 @@ async def confirmar_chamado(
     nome_arquivo = f"CHM-{ano}-{chamado.id:04d}"
     md_path = markdown_service.salvar_md(conteudo_md, "chamados", nome_arquivo)
 
-    # 4. Update chamado with md_path
+    # 4. Update chamado with md_path (validado=False — aguarda aprovação do master)
     chamado.md_path = md_path
+    chamado.validado = False
     session.add(chamado)
     session.commit()
 
-    # 5. Index in ChromaDB (non-fatal)
-    try:
-        metadata = {
-            "titulo": titulo_com_id,
-            "tipo": "chamado_aberto",
-            "patrimonio": req.patrimonio,
-            "setor": req.setor,
-            "tags": json.dumps(req.tags_finais, ensure_ascii=False),
-            "arquivo_path": md_path,
-        }
-        await rag_service.indexar_documento(md_path, metadata)
-
-        fonte = FonteConhecimento(
-            titulo=titulo_com_id,
-            tipo="chamado_aberto",
-            arquivo_path=md_path,
-            tags=json.dumps(req.tags_finais, ensure_ascii=False),
-        )
-        session.add(fonte)
-        session.commit()
-    except Exception:
-        pass
+    # 5. ChromaDB embedding é DIFERIDO — acontece apenas após validação pelo master
+    # O .md já está salvo em disco; o master pode editar antes de indexar.
 
     return {
         "id": chamado.id,
         "status": chamado.status,
         "criado_em": chamado.criado_em,
         "md_path": md_path,
+        "validado": False,
     }

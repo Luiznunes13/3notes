@@ -123,9 +123,13 @@ resolvido_em: null
         return str(Path(KNOWLEDGE_DIR) / subpasta / nome)
 
     def atualizar_md_resolucao(
-        self, md_path: str, resolucao: str, tecnico: str
+        self,
+        md_path: str,
+        resolucao: str,
+        tecnico: str,
+        relacionados: list[str] | None = None,
     ):
-        """Append ## Resolução to existing .md and update frontmatter."""
+        """Append ## Resolução + ## Chamados relacionados (wikilinks) to existing .md."""
         path = Path(md_path)
         if not path.exists():
             return
@@ -137,11 +141,23 @@ resolvido_em: null
         conteudo = re.sub(r"^status: .*$", "status: resolvido", conteudo, flags=re.MULTILINE)
         conteudo = re.sub(r"^resolvido_em: .*$", f"resolvido_em: {agora}", conteudo, flags=re.MULTILINE)
 
-        # Remove previous ## Resolução section if exists
-        conteudo = re.sub(r"\n## Resolução\n[\s\S]*$", "", conteudo)
+        # Remove previous ## Resolução and ## Chamados relacionados sections if they exist
+        conteudo = re.sub(r"\n## Resolução\n[\s\S]*?(?=\n## |\Z)", "", conteudo)
+        conteudo = re.sub(r"\n## Chamados relacionados\n[\s\S]*?(?=\n## |\Z)", "", conteudo)
+        conteudo = conteudo.rstrip()
 
-        # Append resolution
-        conteudo = conteudo.rstrip() + f"\n\n## Resolução\n\n{resolucao}\n\n**Técnico responsável:** {tecnico}  \n**Resolvido em:** {agora}\n"
+        # Append resolution block
+        conteudo += (
+            f"\n\n## Resolução\n\n{resolucao}\n\n"
+            f"**Técnico responsável:** {tecnico}  \n"
+            f"**Resolvido em:** {agora}\n"
+        )
+
+        # Append Obsidian-style cluster with [[wikilinks]] for related chamados
+        if relacionados:
+            links = "\n".join(f"- [[{r}]]" for r in relacionados)
+            conteudo += f"\n## Chamados relacionados\n\n{links}\n"
+
         path.write_text(conteudo, encoding="utf-8")
 
     def parse_frontmatter(self, md_path: str) -> dict:

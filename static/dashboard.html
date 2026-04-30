@@ -3,529 +3,1462 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3Notes.AI — Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>3Notes.AI — Dashboard Técnico</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { background: #0f172a; color: #f1f5f9; }
-    .card { background: #1e293b; border-radius: 12px; }
-    .badge { display:inline-block; padding:2px 10px; border-radius:9999px; font-size:.75rem; font-weight:700; }
-    .badge-critico { background:#dc2626; color:#fff; }
-    .badge-alto { background:#ea580c; color:#fff; }
-    .badge-medio { background:#ca8a04; color:#fff; }
-    .badge-baixo { background:#16a34a; color:#fff; }
-    .nav-item { cursor:pointer; padding:10px 16px; border-radius:10px; display:flex; align-items:center; gap:10px; transition:.15s; }
-    .nav-item:hover,.nav-item.active { background:#334155; }
-    .modal-bg { background:rgba(0,0,0,.6); }
-    @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .critical-blink { animation: pulse-ring 1s infinite; }
-    .tag-badge { display:inline-block; background:#1e3a5f; color:#93c5fd; border-radius:9999px; padding:2px 8px; font-size:.7rem; font-weight:500; }
-    .md-preview-modal { font-family:'Courier New',monospace; background:#1e1e2e; color:#cdd6f4; border-radius:8px; padding:12px; font-size:.78rem; line-height:1.5; white-space:pre-wrap; max-height:300px; overflow-y:auto; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080808;
+      --surface:   #101010;
+      --surface2:  #141414;
+      --border:    #1c1c1c;
+      --border2:   #242424;
+      --text:      #e8e8e8;
+      --text2:     #888;
+      --text3:     #444;
+      --violet:    #7c3aed;
+      --violet-dim:#1a0e38;
+      --violet-bd: #3b1d8a;
+      --violet-lt: #c4b5fd;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: 216px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 10px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 2px 8px 18px;
+    }
+    .brand-mark {
+      width: 30px; height: 30px;
+      background: var(--violet);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .brand-name {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #f0f0f0;
+    }
+    .brand-name span { color: #8b5cf6; }
+    .brand-role {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    /* ─── Nav ─── */
+    .nav-section {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0 10px;
+      margin: 14px 0 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.12s;
+      margin-bottom: 1px;
+      border: 1px solid transparent;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active {
+      background: var(--violet-dim);
+      color: var(--violet-lt);
+      border-color: var(--violet-bd);
+    }
+    .nav-left { display: flex; align-items: center; gap: 9px; }
+    .nav-count {
+      font-size: 10px;
+      font-weight: 700;
+      background: #1e1e1e;
+      color: var(--text3);
+      padding: 1px 6px;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+    .nav-count.has { background: #3b0a0a; color: #fca5a5; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* ─── Main ─── */
+    .main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Topbar ─── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-stats {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .topbar-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .topbar-stat strong { color: var(--text); font-weight: 700; }
+    .topbar-stat .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .dot-red    { background: #dc2626; }
+    .dot-orange { background: #ea580c; }
+    .dot-green  { background: #16a34a; }
+    .dot-violet { background: var(--violet); }
+
+    .refresh-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text3);
+    }
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text3);
+    }
+    .refresh-dot.live { background: #16a34a; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ─── Content ─── */
+    .content { flex: 1; padding: 22px 24px; overflow-x: hidden; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ─── Page header ─── */
+    .page-hd {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .page-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .page-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* ─── Filters ─── */
+    .filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text2);
+      transition: all 0.12s;
+    }
+    .filter-pill:hover { border-color: #333; color: var(--text); }
+    .filter-pill.active {
+      background: var(--violet-dim);
+      border-color: var(--violet-bd);
+      color: var(--violet-lt);
+    }
+    .filter-pill .cnt {
+      font-size: 10px;
+      background: rgba(255,255,255,.06);
+      padding: 0 5px;
+      border-radius: 8px;
+    }
+
+    /* ─── Ticket card ─── */
+    .ticket {
+      display: flex;
+      align-items: stretch;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      margin-bottom: 7px;
+    }
+    .ticket:hover { border-color: var(--border2); background: var(--surface2); }
+    .ticket:hover .ticket-arrow { opacity: 1; }
+
+    .ticket-stripe {
+      width: 4px;
+      flex-shrink: 0;
+    }
+    .stripe-critico { background: #dc2626; }
+    .stripe-alto    { background: #ea580c; }
+    .stripe-medio   { background: #ca8a04; }
+    .stripe-baixo   { background: #16a34a; }
+
+    .ticket-body {
+      flex: 1;
+      padding: 12px 14px;
+      min-width: 0;
+    }
+    .ticket-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .ticket-id {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+    .ticket-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ticket-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ticket-meta span { font-size: 11px; color: var(--text2); }
+
+    .ticket-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px 14px;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .ticket-age {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text3);
+    }
+    .ticket-age.overdue { color: #fca5a5; animation: blink 1.5s infinite; }
+    .ticket-arrow {
+      font-size: 14px;
+      color: var(--text3);
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+
+    /* ─── Badges ─── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid transparent;
+    }
+    .badge-critico { background:#3b0a0a; color:#fca5a5; border-color:#7f1d1d; }
+    .badge-alto    { background:#3b1506; color:#fdba74; border-color:#9a3412; }
+    .badge-medio   { background:#3b2a00; color:#fcd34d; border-color:#92400e; }
+    .badge-baixo   { background:#042f1a; color:#6ee7b7; border-color:#065f46; }
+    .badge-status  { background:#181818; color:#777; border-color:#262626; font-size:10px; }
+    .badge-ok      { background:#042f1a; color:#6ee7b7; border-color:#065f46; }
+    .badge-pending { background: var(--violet-dim); color: var(--violet-lt); border-color: var(--violet-bd); }
+
+    /* ─── Tag ─── */
+    .tag {
+      display: inline-flex;
+      background: var(--violet-dim);
+      border: 1px solid var(--violet-bd);
+      color: var(--violet-lt);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    /* ─── Inputs / Selects ─── */
+    .inp {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.12s, box-shadow 0.12s;
+      font-family: inherit;
+    }
+    .inp:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+    .inp::placeholder { color: var(--text3); }
+    select.inp { cursor: pointer; }
+    select.inp option { background: #1a1a1a; }
+    textarea.inp { resize: vertical; line-height: 1.6; }
+
+    /* ─── Buttons ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.12s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--violet); color: #fff; border-color: #6d28d9; }
+    .btn-primary:hover:not(:disabled) { background: #6d28d9; }
+    .btn-ghost { background: var(--surface); border-color: var(--border2); color: var(--text2); }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); border-color: #333; }
+    .btn-success { background: #065f46; color: #6ee7b7; border-color: #047857; }
+    .btn-success:hover:not(:disabled) { background: #047857; color: #fff; }
+    .btn-warn { background: #3b2a00; color: #fcd34d; border-color: #92400e; }
+    .btn-warn:hover:not(:disabled) { background: #92400e; color: #fff; }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    /* ─── Sec label ─── */
+    .sec-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ─── Divider ─── */
+    hr.div { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ─── Stat cards ─── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-num {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .stat-lbl { font-size: 11px; color: var(--text2); }
+    .stat-bar {
+      height: 2px;
+      border-radius: 2px;
+      margin-top: 8px;
+      opacity: .6;
+    }
+
+    /* ─── Calendar ─── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-head { font-size: 10px; font-weight: 700; color: var(--text3); text-align: center; padding: 4px 0; text-transform: uppercase; }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.1s;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .cal-day:hover { background: var(--border); color: var(--text); }
+    .cal-day.today { background: var(--violet-dim); color: var(--violet-lt); border-color: var(--violet-bd); font-weight: 700; }
+    .cal-day .pip { width: 4px; height: 4px; border-radius: 50%; background: var(--violet); margin-top: 2px; }
+
+    /* ─── Equipment grid ─── */
+    .eq-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .eq-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 14px;
+    }
+    .eq-pat {
+      font-family: 'SF Mono', monospace;
+      font-size: 11px;
+      color: var(--violet-lt);
+      font-weight: 600;
+    }
+    .eq-desc { font-size: 13px; font-weight: 600; margin: 4px 0; color: var(--text); }
+    .eq-meta { font-size: 11px; color: var(--text2); }
+
+    /* ─── Copilot floating ─── */
+    .cop-bubble {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--violet);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.45);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .cop-bubble:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(124,58,237,0.6); }
+    .cop-bubble.active { background: #5b21b6; }
+
+    .cop-window {
+      position: fixed;
+      bottom: 84px;
+      right: 24px;
+      width: 340px;
+      height: 480px;
+      background: #0f0f0f;
+      border: 1px solid #222;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      z-index: 199;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      transform: translateY(12px) scale(0.97);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.18s, opacity 0.18s;
+    }
+    .cop-window.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+
+    .cop-hd {
+      padding: 12px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .cop-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--violet); flex-shrink: 0; }
+    .cop-title { font-size: 13px; font-weight: 700; color: #e0e0e0; }
+    .cop-sub { font-size: 10px; color: #333; margin-left: auto; }
+
+    .cop-ctx {
+      padding: 8px 14px;
+      border-bottom: 1px solid #161616;
+      background: var(--violet-dim);
+      font-size: 11px;
+      color: var(--violet-lt);
+      flex-shrink: 0;
+      display: none;
+    }
+    .cop-ctx.has { display: block; }
+
+    .cop-msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cmsg-ai {
+      background: #181818;
+      border: 1px solid #222;
+      border-radius: 8px 8px 8px 2px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #bbb;
+      line-height: 1.65;
+    }
+    .cmsg-user {
+      background: var(--violet-dim);
+      border: 1px solid var(--violet-bd);
+      border-radius: 8px 8px 2px 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: var(--violet-lt);
+      text-align: right;
+      align-self: flex-end;
+      max-width: 85%;
+    }
+    .cmsg-label { font-size: 10px; font-weight: 700; color: var(--violet); display: block; margin-bottom: 4px; }
+    .cop-sources { margin: 2px 0 6px 0; }
+    .cop-src-label { font-size: 10px; color: #555; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.04em; }
+    .cop-src-card { background: #111; border: 1px solid #222; border-radius: 6px; padding: 7px 9px; margin-bottom: 4px; }
+    .cop-src-title { font-size: 10px; color: var(--violet); font-weight: 700; margin-bottom: 3px; font-family: monospace; }
+    .cop-src-snippet { font-size: 10px; color: #666; line-height: 1.45; }
+
+    .cop-inp-row {
+      padding: 10px 12px;
+      border-top: 1px solid #1a1a1a;
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Slide panel ─── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 600px;
+      max-width: 100vw;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 50;
+      transform: translateX(100%);
+      transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel.open { transform: translateX(0); }
+
+    .panel-urgency-bar {
+      height: 3px;
+      flex-shrink: 0;
+      width: 100%;
+    }
+    .panel-hd {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-body { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─── MD renderer ─── */
+    .md-block {
+      background: #080808;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 11.5px;
+      line-height: 1.8;
+      color: #aaa;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    .md-yaml { color: var(--text3); }
+    .md-h2   { color: #8b5cf6; font-weight: 700; display: block; margin-top: 10px; }
+    .md-bold { color: var(--text); }
+    .md-wiki {
+      color: var(--violet-lt);
+      background: var(--violet-dim);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--violet-bd);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 11px;
+    }
+    .md-wiki:hover { background: #2a1458; }
+
+    /* ─── Action box ─── */
+    .action-box {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      padding: 14px;
+    }
+    .action-box-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    /* ─── Modal center ─── */
+    .modal-center {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    .modal-center.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .modal-title { font-size: 15px; font-weight: 700; }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.25s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ─── Animations ─── */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation: fadeUp 0.2s ease-out; }
+
+    /* ─── Empty state ─── */
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text3);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
+    .empty-title { font-size: 14px; color: var(--text2); margin-bottom: 4px; }
+    .empty-sub { font-size: 12px; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
-<body class="min-h-screen flex">
+<body>
 
-<!-- Sidebar -->
-<aside class="w-56 min-h-screen bg-[#1e293b] flex flex-col p-4 gap-2 flex-shrink-0">
-  <div class="mb-4">
-    <h1 class="text-xl font-bold text-white">3Notes.AI</h1>
-    <p class="text-xs text-slate-400">Dashboard técnico</p>
+<!-- ══════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="16" height="16" viewBox="0 0 22 22" fill="none">
+        <rect x="3" y="3" width="7" height="7" rx="1" fill="white"/>
+        <rect x="12" y="3" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+        <rect x="3" y="12" width="7" height="7" rx="1" fill="white" opacity=".7"/>
+        <rect x="12" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+        <rect x="16" y="12" width="3" height="7" rx="1" fill="white" opacity=".5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">3Notes<span>.AI</span></div>
+      <div class="brand-role">Técnico</div>
+    </div>
   </div>
-  <nav class="flex flex-col gap-1">
-    <div class="nav-item active" onclick="showSection('fila')" id="nav-fila">
-      <span>📋</span> Fila
-    </div>
-    <div class="nav-item" onclick="showSection('agenda')" id="nav-agenda">
-      <span>📅</span> Agenda
-    </div>
-    <div class="nav-item" onclick="showSection('equipamentos')" id="nav-equipamentos">
-      <span>🔧</span> Equipamentos
-    </div>
-    <div class="nav-item" onclick="showSection('metricas')" id="nav-metricas">
-      <span>📊</span> Métricas
-    </div>
-    <div class="nav-item" onclick="showSection('knowledge')" id="nav-knowledge">
-      <span>📚</span> Knowledge Base
-    </div>
-  </nav>
+
+  <div class="nav-section">Operação</div>
+
+  <div class="nav-item active" id="nav-fila" onclick="showSection('fila')">
+    <div class="nav-left"><span>📋</span> Fila</div>
+    <span class="nav-count" id="nc-fila">—</span>
+  </div>
+  <div class="nav-item" id="nav-agenda" onclick="showSection('agenda')">
+    <div class="nav-left"><span>📅</span> Agenda</div>
+  </div>
+  <div class="nav-item" id="nav-equipamentos" onclick="showSection('equipamentos')">
+    <div class="nav-left"><span>🔧</span> Equipamentos</div>
+  </div>
+
+  <div class="nav-section">Análise</div>
+
+  <div class="nav-item" id="nav-metricas" onclick="showSection('metricas')">
+    <div class="nav-left"><span>📊</span> Métricas</div>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/static/reporter.html" class="nav-item" style="font-size:12px;">
+      <div class="nav-left"><span>✏</span> Reporter</div>
+      <span style="font-size:10px;color:var(--text3);">↗</span>
+    </a>
+    <a href="/static/admin.html" class="nav-item" style="font-size:12px;">
+      <div class="nav-left"><span>🔐</span> Master</div>
+      <span style="font-size:10px;color:var(--text3);">↗</span>
+    </a>
+  </div>
 </aside>
 
-<!-- Main -->
-<main class="flex-1 p-6 overflow-auto">
+<!-- ══════════════════════════════════════
+     MAIN
+══════════════════════════════════════ -->
+<div class="main">
 
-  <!-- FILA -->
-  <section id="sec-fila">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold">Fila de chamados</h2>
-      <button onclick="carregarFila()" class="text-sm text-blue-400 hover:text-blue-300">↻ Atualizar</button>
-    </div>
-    <div class="card overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-slate-400 border-b border-slate-700">
-            <th class="p-3 text-left">#</th>
-            <th class="p-3 text-left">Equipamento</th>
-            <th class="p-3 text-left">Setor</th>
-            <th class="p-3 text-left">Criticidade</th>
-            <th class="p-3 text-left">Aberto há</th>
-            <th class="p-3 text-left">Status</th>
-            <th class="p-3 text-left"></th>
-          </tr>
-        </thead>
-        <tbody id="tabela-fila"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- AGENDA -->
-  <section id="sec-agenda" class="hidden">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold">Agenda preventiva</h2>
-      <div class="flex gap-2 items-center">
-        <button onclick="mudarMes(-1)" class="text-slate-300 hover:text-white text-lg px-2">←</button>
-        <span id="label-mes" class="text-slate-300 font-medium w-28 text-center"></span>
-        <button onclick="mudarMes(1)" class="text-slate-300 hover:text-white text-lg px-2">→</button>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-stats">
+      <div class="topbar-stat">
+        <div class="dot dot-red"></div>
+        <span>Críticos: <strong id="tb-criticos">—</strong></span>
+      </div>
+      <div class="topbar-stat">
+        <div class="dot dot-orange"></div>
+        <span>Abertos: <strong id="tb-abertos">—</strong></span>
+      </div>
+      <div class="topbar-stat">
+        <div class="dot dot-green"></div>
+        <span>SLA médio: <strong id="tb-sla">—</strong></span>
+      </div>
+      <div class="topbar-stat" id="tb-pendentes-wrap" style="display:none;">
+        <div class="dot" style="background:#c4b5fd;box-shadow:0 0 4px #7c3aed;"></div>
+        <span style="color:#c4b5fd;">Aguardando validação: <strong id="tb-pendentes">0</strong></span>
       </div>
     </div>
-    <div class="card p-4 mb-4">
-      <div id="grid-calendario" class="grid grid-cols-7 gap-1 text-center text-xs text-slate-400 mb-2">
-        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
-      </div>
-      <div id="dias-calendario" class="grid grid-cols-7 gap-1"></div>
-    </div>
-    <div id="lista-dia" class="card p-4 hidden">
-      <h3 id="titulo-dia" class="font-semibold mb-3 text-slate-200"></h3>
-      <div id="manutencoes-dia"></div>
-    </div>
-  </section>
-
-  <!-- EQUIPAMENTOS -->
-  <section id="sec-equipamentos" class="hidden">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold">Equipamentos</h2>
-      <button onclick="abrirModalNovoEq()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">+ Novo equipamento</button>
-    </div>
-    <div class="card p-4 mb-4">
-      <input id="busca-eq" type="text" placeholder="Buscar por patrimônio, descrição ou setor..."
-        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        oninput="filtrarEquipamentos()" />
-    </div>
-    <div class="card overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-slate-400 border-b border-slate-700">
-            <th class="p-3 text-left">Patrimônio</th>
-            <th class="p-3 text-left">Descrição</th>
-            <th class="p-3 text-left">Setor</th>
-            <th class="p-3 text-left">Tipo</th>
-            <th class="p-3 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody id="tabela-equipamentos"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- MÉTRICAS -->
-  <section id="sec-metricas" class="hidden">
-    <h2 class="text-xl font-bold mb-4">Métricas</h2>
-    <div id="cards-metricas" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
-    <div class="grid grid-cols-2 gap-4 mb-6">
-      <div class="card p-4"><canvas id="chart-setor"></canvas></div>
-      <div class="card p-4"><canvas id="chart-criticidade"></canvas></div>
-    </div>
-    <div class="card p-4">
-      <h3 class="font-semibold mb-3 text-slate-300">Top equipamentos com mais chamados</h3>
-      <table class="w-full text-sm">
-        <thead><tr class="text-slate-400 border-b border-slate-700">
-          <th class="p-2 text-left">Patrimônio</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-right">Chamados</th>
-        </tr></thead>
-        <tbody id="tabela-top-eq"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- KNOWLEDGE BASE -->
-  <section id="sec-knowledge" class="hidden">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold">📚 Knowledge Base</h2>
-      <button onclick="abrirModalUpload()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">+ Adicionar fonte</button>
-    </div>
-
-    <!-- Busca semântica -->
-    <div class="card p-4 mb-4">
-      <label class="block text-xs text-slate-400 font-semibold uppercase mb-2">Busca semântica</label>
-      <div class="flex gap-2">
-        <input id="busca-knowledge" type="text" placeholder="Ex: bomba de infusão alarme oclusão..."
-          class="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <button onclick="buscarKnowledge()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Buscar</button>
-      </div>
-      <div id="resultados-busca" class="mt-3 flex flex-col gap-2"></div>
-    </div>
-
-    <!-- Fontes por tipo -->
-    <div id="fontes-conhecimento" class="flex flex-col gap-4"></div>
-  </section>
-
-</main>
-
-<!-- Modal Detalhes Chamado -->
-<div id="modal-chamado" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
-  <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-bold" id="modal-titulo"></h3>
-      <button onclick="fecharModal('modal-chamado')" class="text-slate-400 hover:text-white text-xl">✕</button>
-    </div>
-    <div id="modal-chamado-body"></div>
-
-    <!-- Link ver nota .md -->
-    <div id="nota-md-link" class="hidden mt-3">
-      <button onclick="verNotaMd()" class="text-blue-400 hover:text-blue-300 text-sm underline">📄 Ver nota .md</button>
-    </div>
-
-    <div class="flex gap-2 mt-4 flex-wrap">
-      <button id="btn-iniciar-atend" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Iniciar atendimento</button>
-      <div class="flex gap-1 items-center">
-        <select id="select-criticidade" class="bg-slate-700 border border-slate-600 text-sm rounded-xl px-3 py-2 focus:outline-none">
-          <option value="">Confirmar criticidade...</option>
-          <option value="critico">Crítico</option>
-          <option value="alto">Alto</option>
-          <option value="medio">Médio</option>
-          <option value="baixo">Baixo</option>
-        </select>
-        <button id="btn-confirmar-crit" class="bg-orange-600 hover:bg-orange-500 text-white text-sm px-3 py-2 rounded-xl">OK</button>
-      </div>
-    </div>
-    <div class="mt-3">
-      <input id="input-tecnico-resolucao" type="text" placeholder="Nome do técnico *"
-        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-sm mb-2 focus:outline-none" />
-      <textarea id="textarea-resolucao" placeholder="Descreva a resolução..." rows="3"
-        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none resize-none"></textarea>
-      <button id="btn-resolver" class="mt-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">Registrar resolução e salvar nota</button>
+    <div class="refresh-indicator">
+      <div class="refresh-dot live" id="refresh-dot"></div>
+      <span id="refresh-label">ao vivo</span>
     </div>
   </div>
-</div>
 
-<!-- Modal Ver nota .md -->
-<div id="modal-md" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
-  <div class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-bold">Nota .md</h3>
-      <button onclick="fecharModal('modal-md')" class="text-slate-400 hover:text-white text-xl">✕</button>
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ═══ FILA ═══ -->
+    <div class="section active" id="sec-fila">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Fila de chamados</div>
+          <div class="page-sub">Ordenado por criticidade · atualização automática a cada 30s</div>
+        </div>
+        <button class="btn btn-ghost" onclick="carregarFila()">↻ Atualizar</button>
+      </div>
+
+      <div class="filters" id="filters-fila">
+        <div class="filter-pill active" onclick="filtrarFila('todos',this)">Todos <span class="cnt" id="fc-todos">0</span></div>
+        <div class="filter-pill" onclick="filtrarFila('critico',this)" style="border-color:#7f1d1d;color:#fca5a5;">● Crítico <span class="cnt" id="fc-critico">0</span></div>
+        <div class="filter-pill" onclick="filtrarFila('alto',this)" style="border-color:#9a3412;color:#fdba74;">● Alto <span class="cnt" id="fc-alto">0</span></div>
+        <div class="filter-pill" onclick="filtrarFila('aberto',this)">Aberto <span class="cnt" id="fc-aberto">0</span></div>
+        <div class="filter-pill" onclick="filtrarFila('em_andamento',this)">Em andamento <span class="cnt" id="fc-andamento">0</span></div>
+      </div>
+
+      <div id="lista-fila"></div>
     </div>
-    <div id="conteudo-md-modal" class="md-preview-modal"></div>
+
+    <!-- ═══ AGENDA ═══ -->
+    <div class="section" id="sec-agenda">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Agenda preventiva</div>
+          <div class="page-sub">Manutenções programadas</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="btn btn-ghost" onclick="mudarMes(-1)">←</button>
+          <span id="label-mes" style="min-width:130px;text-align:center;font-weight:600;color:var(--text);font-size:13px;"></span>
+          <button class="btn btn-ghost" onclick="mudarMes(1)">→</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="cal-grid" style="margin-bottom:6px;">
+          <div class="cal-head">Dom</div><div class="cal-head">Seg</div><div class="cal-head">Ter</div>
+          <div class="cal-head">Qua</div><div class="cal-head">Qui</div><div class="cal-head">Sex</div><div class="cal-head">Sáb</div>
+        </div>
+        <div class="cal-grid" id="dias-calendario"></div>
+      </div>
+
+      <div class="card hidden" id="lista-dia">
+        <div class="sec-label" id="titulo-dia" style="margin-bottom:12px;"></div>
+        <div id="manutencoes-dia"></div>
+      </div>
+    </div>
+
+    <!-- ═══ EQUIPAMENTOS ═══ -->
+    <div class="section" id="sec-equipamentos">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Equipamentos</div>
+          <div class="page-sub">Inventário de ativos hospitalares</div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalNovoEq()">+ Novo</button>
+      </div>
+      <input id="busca-eq" type="text" placeholder="Buscar por patrimônio, descrição ou setor…"
+        class="inp" style="width:100%;margin-bottom:14px;" oninput="filtrarEquipamentos()" />
+      <div id="lista-eq" class="eq-grid"></div>
+    </div>
+
+    <!-- ═══ MÉTRICAS ═══ -->
+    <div class="section" id="sec-metricas">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Métricas</div>
+          <div class="page-sub">Panorama operacional</div>
+        </div>
+        <button class="btn btn-ghost" onclick="carregarMetricas()">↻</button>
+      </div>
+
+      <div class="stat-grid" id="cards-metricas"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="card"><canvas id="chart-setor" height="160"></canvas></div>
+        <div class="card"><canvas id="chart-criticidade" height="160"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-label" style="margin-bottom:12px;">Top equipamentos · mais chamados</div>
+        <div id="tabela-top-eq"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+
+<!-- ══════════════════════════════════════
+     PANEL — Detalhes do chamado
+══════════════════════════════════════ -->
+<div class="overlay" id="panel-overlay" onclick="fecharPanel()"></div>
+
+<aside class="panel" id="panel-chamado">
+  <div class="panel-urgency-bar" id="panel-urgency-bar"></div>
+  <div class="panel-hd">
+    <div style="min-width:0;">
+      <div id="panel-id" style="font-family:monospace;font-size:11px;color:var(--text3);margin-bottom:4px;"></div>
+      <div id="panel-titulo" style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3;"></div>
+      <div id="panel-meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"></div>
+    </div>
+    <button class="btn btn-ghost" onclick="fecharPanel()" style="padding:5px 9px;flex-shrink:0;">✕</button>
   </div>
-</div>
 
-<!-- Modal Novo Equipamento -->
-<div id="modal-novo-eq" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
-  <div class="card w-full max-w-md p-6">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-bold">Novo equipamento</h3>
-      <button onclick="fecharModal('modal-novo-eq')" class="text-slate-400 hover:text-white text-xl">✕</button>
+  <div class="panel-body">
+
+    <!-- Nota MD -->
+    <div>
+      <div class="sec-label" style="margin-bottom:8px;">📄 Nota .md</div>
+      <div id="panel-md" class="md-block">Carregando…</div>
     </div>
-    <form id="form-novo-eq" class="flex flex-col gap-3">
-      <input name="patrimonio" placeholder="Patrimônio *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <input name="descricao" placeholder="Descrição *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <input name="tipo" placeholder="Tipo (ex: Ventilador mecânico) *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <input name="setor" placeholder="Setor *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <input name="localizacao" placeholder="Localização *" required class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <input name="intervalo_preventivo_dias" type="number" placeholder="Intervalo preventivo (dias)" class="bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-xl transition">Salvar</button>
+
+    <!-- Ações -->
+    <div id="panel-actions">
+
+      <div class="action-box" style="margin-bottom:10px;">
+        <div class="action-box-title">Atendimento</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="btn-iniciar" class="btn btn-ghost">⚙ Iniciar atendimento</button>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="select-crit" class="inp" style="padding:6px 10px;font-size:12px;">
+              <option value="">Confirmar criticidade…</option>
+              <option value="critico">Crítico</option>
+              <option value="alto">Alto</option>
+              <option value="medio">Médio</option>
+              <option value="baixo">Baixo</option>
+            </select>
+            <button id="btn-crit" class="btn btn-ghost" style="padding:6px 10px;">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-box" id="res-form">
+        <div class="action-box-title">Registrar resolução</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input id="inp-tecnico" type="text" placeholder="Nome do técnico *" class="inp" />
+          <textarea id="ta-resolucao" rows="4" placeholder="Descreva o que foi feito para resolver o problema…" class="inp"></textarea>
+          <button id="btn-resolver" class="btn btn-success" style="justify-content:center;">
+            ✓ Registrar resolução e atualizar cluster
+          </button>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6;">
+            O .md será atualizado com <code style="background:#181818;padding:1px 4px;border-radius:3px;color:#666;">## Resolução</code>
+            e wikilinks <code style="background:var(--violet-dim);padding:1px 4px;border-radius:3px;color:var(--violet-lt);">[[CHM-…]]</code>
+            para chamados relacionados encontrados via RAG.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- Novo equipamento -->
+<div class="modal-center" id="modal-novo-eq">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <div class="modal-title">Novo equipamento</div>
+      <button class="btn btn-ghost" onclick="fecharModal('modal-novo-eq')" style="padding:4px 8px;">✕</button>
+    </div>
+    <form id="form-novo-eq" style="display:flex;flex-direction:column;gap:10px;">
+      <input name="patrimonio" placeholder="Patrimônio *" required class="inp" />
+      <input name="descricao" placeholder="Descrição *" required class="inp" />
+      <input name="tipo" placeholder="Tipo (ex: Ventilador mecânico) *" required class="inp" />
+      <input name="setor" placeholder="Setor *" required class="inp" />
+      <input name="localizacao" placeholder="Localização *" required class="inp" />
+      <input name="intervalo_preventivo_dias" type="number" placeholder="Intervalo preventivo (dias)" class="inp" />
+      <button type="submit" class="btn btn-primary" style="justify-content:center;">Salvar equipamento</button>
     </form>
   </div>
 </div>
 
-<!-- Modal Executar Manutenção -->
-<div id="modal-executar" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
-  <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-bold">Executar manutenção preventiva</h3>
-      <button onclick="fecharModal('modal-executar')" class="text-slate-400 hover:text-white text-xl">✕</button>
+<!-- Executar manutenção -->
+<div class="modal-center" id="modal-executar">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <div class="modal-title">Executar manutenção preventiva</div>
+      <button class="btn btn-ghost" onclick="fecharModal('modal-executar')" style="padding:4px 8px;">✕</button>
     </div>
-    <div id="checklist-content" class="mb-4 text-sm text-slate-300"></div>
-    <input id="input-tecnico" placeholder="Nome do técnico *" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm mb-3 focus:outline-none" />
-    <textarea id="input-obs" placeholder="Observações" rows="3" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm resize-none mb-3 focus:outline-none"></textarea>
-    <button id="btn-confirmar-exec" class="w-full bg-green-600 hover:bg-green-500 text-white font-medium py-2 rounded-xl transition">Confirmar execução</button>
+    <div id="checklist-content" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="input-tecnico" placeholder="Nome do técnico *" class="inp" />
+      <textarea id="input-obs" placeholder="Observações" rows="3" class="inp"></textarea>
+      <button id="btn-confirmar-exec" class="btn btn-success" style="justify-content:center;">Confirmar execução</button>
+    </div>
   </div>
 </div>
 
-<!-- Modal Upload Knowledge -->
-<div id="modal-upload" class="hidden fixed inset-0 modal-bg flex items-center justify-center z-50 p-4">
-  <div class="card w-full max-w-md p-6">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-bold">Adicionar fonte de conhecimento</h3>
-      <button onclick="fecharModal('modal-upload')" class="text-slate-400 hover:text-white text-xl">✕</button>
+<!-- Copilot flutuante -->
+<button class="cop-bubble" id="cop-bubble" onclick="toggleCop()" title="Copiloto IA">🤖</button>
+
+<div class="cop-window" id="cop-window">
+  <div class="cop-hd">
+    <div class="cop-dot"></div>
+    <span class="cop-title">Copiloto</span>
+    <span class="cop-sub">Gemma 4 + RAG</span>
+    <button onclick="toggleCop()" style="background:none;border:none;color:#444;font-size:16px;cursor:pointer;margin-left:6px;line-height:1;">×</button>
+  </div>
+  <div class="cop-ctx" id="cop-ctx"></div>
+  <div class="cop-msgs" id="cop-msgs">
+    <div class="cmsg-ai">
+      <span class="cmsg-label">🤖 Copiloto</span>
+      Olá! Abra um chamado e eu consulto a base de conhecimento para sugerir soluções. Ou me pergunte qualquer coisa sobre manutenção hospitalar.
     </div>
-    <form id="form-upload" class="flex flex-col gap-3">
-      <div>
-        <label class="block text-xs text-slate-400 mb-1">Arquivo (.md, .txt, .pdf)</label>
-        <input type="file" name="file" accept=".md,.txt,.pdf" required
-          class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-sm" />
-      </div>
-      <div>
-        <label class="block text-xs text-slate-400 mb-1">Tipo</label>
-        <select name="tipo" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none">
-          <option value="manual">Manual técnico</option>
-          <option value="protocolo">Protocolo hospitalar</option>
-          <option value="documento">Documento geral</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs text-slate-400 mb-1">Tags (separadas por vírgula)</label>
-        <input type="text" name="tags_input" placeholder="ex: autoclave, esterilizacao, centro-cirurgico"
-          class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-2 text-sm focus:outline-none" />
-      </div>
-      <button type="submit" id="btn-upload-submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-xl transition">Indexar na base de conhecimento</button>
-    </form>
+  </div>
+  <div class="cop-inp-row">
+    <input id="cop-input" type="text" class="inp" style="font-size:13px;flex:1;" placeholder="Pergunte…">
+    <button onclick="enviarCop()" style="background:#5b21b6;border:none;color:#fff;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:15px;">→</button>
   </div>
 </div>
 
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
   const API = '';
+  let todosChamados = [];
   let todosEquipamentos = [];
+  let filtroAtivo = 'todos';
   let currentChamadoId = null;
-  let currentChamadoMdPath = null;
   let currentAgendaId = null;
   let mesAtual = new Date();
   let agendaData = [];
   let chartSetor = null, chartCrit = null;
 
-  // ---- Navegação ----
+  // ── Navegação ──────────────────────────────
   function showSection(name) {
-    ['fila','agenda','equipamentos','metricas','knowledge'].forEach(s => {
-      document.getElementById(`sec-${s}`).classList.toggle('hidden', s !== name);
+    const all = ['fila','agenda','equipamentos','metricas'];
+    all.forEach(s => {
+      document.getElementById(`sec-${s}`).classList.toggle('active', s === name);
+      document.getElementById(`sec-${s}`).classList.toggle('hidden', false);
       document.getElementById(`nav-${s}`).classList.toggle('active', s === name);
     });
-    if (name === 'fila') carregarFila();
-    if (name === 'agenda') carregarAgenda();
+    // hide non-active
+    all.filter(s => s !== name).forEach(s => {
+      document.getElementById(`sec-${s}`).style.display = 'none';
+    });
+    document.getElementById(`sec-${name}`).style.display = 'block';
+
+    if (name === 'fila')         carregarFila();
+    if (name === 'agenda')       carregarAgenda();
     if (name === 'equipamentos') carregarEquipamentos();
-    if (name === 'metricas') carregarMetricas();
-    if (name === 'knowledge') carregarKnowledge();
+    if (name === 'metricas')     carregarMetricas();
   }
 
-  function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+  // Simplified show/hide
+  document.querySelectorAll('.section').forEach(s => {
+    if (!s.classList.contains('active')) s.style.display = 'none';
+  });
 
-  // ---- Utilitários ----
-  function tempoAberto(criadoEm) {
-    const diff = (Date.now() - new Date(criadoEm + 'Z').getTime()) / 1000;
+  function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+  function abrirModal(id)  { document.getElementById(id).classList.add('open'); }
+  function fecharPanel() {
+    document.getElementById('panel-overlay').classList.remove('open');
+    document.getElementById('panel-chamado').classList.remove('open');
+    currentChamadoId = null;
+    copSetCtx(null);
+  }
+
+  // ── Utils ──────────────────────────────────
+  function tempoAberto(iso) {
+    const diff = (Date.now() - new Date(iso + 'Z').getTime()) / 1000;
+    if (diff < 60) return 'agora';
     if (diff < 3600) return `${Math.floor(diff/60)}min`;
-    return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}min`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+    return `${Math.floor(diff/86400)}d`;
   }
 
-  function badgeHtml(nivel) {
+  function isOverdue(iso, nivel) {
+    if (nivel !== 'critico') return false;
+    return (Date.now() - new Date(iso + 'Z').getTime()) > 3600000;
+  }
+
+  function badge(nivel) {
     const labels = { critico:'Crítico', alto:'Alto', medio:'Médio', baixo:'Baixo' };
     return `<span class="badge badge-${nivel||'baixo'}">${labels[nivel]||nivel||'—'}</span>`;
   }
 
-  // ---- FILA ----
+  function statusBadge(s) {
+    if (s === 'resolvido')    return `<span class="badge badge-ok">✓ Resolvido</span>`;
+    if (s === 'em_andamento') return `<span class="badge badge-status">⚙ Em andamento</span>`;
+    return `<span class="badge badge-status">● Aberto</span>`;
+  }
+
+  function fmtId(c) {
+    const ano = c.criado_em ? new Date(c.criado_em + 'Z').getFullYear() : new Date().getFullYear();
+    return `CHM-${ano}-${String(c.id).padStart(4,'0')}`;
+  }
+
+  const urgencyColor = { critico:'#dc2626', alto:'#ea580c', medio:'#ca8a04', baixo:'#16a34a' };
+
+  function renderMd(md) {
+    if (!md) return '<em style="color:var(--text3)">Sem conteúdo.</em>';
+    return md
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/^---\n([\s\S]*?)\n---/m, (_,b) => `<span class="md-yaml">---\n${b}\n---</span>`)
+      .replace(/^## (.+)$/gm, `<span class="md-h2">## $1</span>`)
+      .replace(/\*\*(.+?)\*\*/g, `<span class="md-bold">**$1**</span>`)
+      .replace(/\[\[([^\]]+)\]\]/g, `<a class="md-wiki" onclick="abrirPorId('$1')">[[$1]]</a>`);
+  }
+
+  function showToast(msg, erro = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = erro ? '#3b0a0a' : '#042f1a';
+    t.style.color = erro ? '#fca5a5' : '#6ee7b7';
+    t.style.border = `1px solid ${erro ? '#7f1d1d' : '#065f46'}`;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── FILA ──────────────────────────────────
   async function carregarFila() {
+    document.getElementById('refresh-dot').classList.remove('live');
     const resp = await fetch(`${API}/api/chamados?status=aberto,em_andamento`);
-    const chamados = await resp.json();
-    const tbody = document.getElementById('tabela-fila');
-    if (chamados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">Nenhum chamado aberto.</td></tr>';
+    todosChamados = await resp.json();
+    document.getElementById('refresh-dot').classList.add('live');
+    document.getElementById('refresh-label').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    atualizarContadores();
+    renderFila();
+  }
+
+  function atualizarContadores() {
+    const criticos   = todosChamados.filter(c => (c.criticidade_confirmada||c.criticidade_sugerida) === 'critico').length;
+    const altos      = todosChamados.filter(c => (c.criticidade_confirmada||c.criticidade_sugerida) === 'alto').length;
+    const abertos    = todosChamados.filter(c => c.status === 'aberto').length;
+    const em_and     = todosChamados.filter(c => c.status === 'em_andamento').length;
+    const pendentes  = todosChamados.filter(c => !c.validado).length;
+
+    document.getElementById('tb-criticos').textContent = criticos;
+    document.getElementById('tb-abertos').textContent = todosChamados.length;
+    document.getElementById('nc-fila').textContent = todosChamados.length;
+    if (criticos > 0) document.getElementById('nc-fila').classList.add('has');
+    else document.getElementById('nc-fila').classList.remove('has');
+
+    document.getElementById('fc-todos').textContent = todosChamados.length;
+    document.getElementById('fc-critico').textContent = criticos;
+    document.getElementById('fc-alto').textContent = altos;
+    document.getElementById('fc-aberto').textContent = abertos;
+    document.getElementById('fc-andamento').textContent = em_and;
+
+    // Indicator: chamados pending master validation
+    const wrap = document.getElementById('tb-pendentes-wrap');
+    document.getElementById('tb-pendentes').textContent = pendentes;
+    wrap.style.display = pendentes > 0 ? '' : 'none';
+  }
+
+  function filtrarFila(f, el) {
+    filtroAtivo = f;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderFila();
+  }
+
+  function renderFila() {
+    const container = document.getElementById('lista-fila');
+    let lista = todosChamados.slice();
+
+    if (filtroAtivo === 'critico' || filtroAtivo === 'alto') {
+      lista = lista.filter(c => (c.criticidade_confirmada||c.criticidade_sugerida) === filtroAtivo);
+    } else if (filtroAtivo === 'aberto' || filtroAtivo === 'em_andamento') {
+      lista = lista.filter(c => c.status === filtroAtivo);
+    }
+
+    if (!lista.length) {
+      container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Fila vazia</div><div class="empty-sub">Nenhum chamado corresponde ao filtro selecionado.</div></div>`;
       return;
     }
-    const agora = Date.now();
-    tbody.innerHTML = chamados.map(c => {
+
+    container.innerHTML = lista.map(c => {
       const nivel = c.criticidade_confirmada || c.criticidade_sugerida || 'baixo';
-      const horas = (agora - new Date(c.criado_em + 'Z').getTime()) / 3600000;
-      const critico = nivel === 'critico' && horas > 1;
-      return `<tr class="border-b border-slate-700 hover:bg-slate-800 ${critico ? 'critical-blink' : ''}">
-        <td class="p-3 text-slate-300">#${c.id}</td>
-        <td class="p-3 font-medium">${c.descricao.substring(0, 40)}...</td>
-        <td class="p-3 text-slate-400">${c.setor_reportador}</td>
-        <td class="p-3">${badgeHtml(nivel)}</td>
-        <td class="p-3 text-slate-400">${tempoAberto(c.criado_em)}</td>
-        <td class="p-3 text-slate-400">${c.status}</td>
-        <td class="p-3"><button onclick="abrirChamado(${c.id})" class="text-blue-400 hover:text-blue-300 text-sm">Ver detalhes</button></td>
-      </tr>`;
+      const overdue = isOverdue(c.criado_em, nivel);
+      const id = fmtId(c);
+      const desc = (c.descricao || '').split('\n')[0];
+      const age = tempoAberto(c.criado_em);
+
+      return `
+        <div class="ticket fade-up" onclick="abrirChamado(${c.id})">
+          <div class="ticket-stripe stripe-${nivel}"></div>
+          <div class="ticket-body">
+            <div class="ticket-top">
+              <span class="ticket-id">${id}</span>
+              ${badge(nivel)}
+              ${statusBadge(c.status)}
+            </div>
+            <div class="ticket-title">${desc.length > 100 ? desc.slice(0,100) + '…' : desc}</div>
+            <div class="ticket-meta" style="margin-top:5px;">
+              <span>👤 ${c.aberto_por || '—'}</span>
+              <span>🏥 ${c.setor_reportador || '—'}</span>
+              ${c.validado ? '' : '<span style="color:#c4b5fd;">⏳ Aguardando validação</span>'}
+            </div>
+          </div>
+          <div class="ticket-right">
+            <div class="ticket-age ${overdue ? 'overdue' : ''}">${age}</div>
+            ${overdue ? '<div style="font-size:9px;color:#fca5a5;text-align:right;">CRÍTICO<br>HÁ +1H</div>' : ''}
+            <div class="ticket-arrow">→</div>
+          </div>
+        </div>`;
     }).join('');
+  }
+
+  function abrirPorId(wikiId) {
+    const m = wikiId.match(/CHM-\d{4}-(\d+)/);
+    if (m) abrirChamado(parseInt(m[1], 10));
   }
 
   async function abrirChamado(id) {
     currentChamadoId = id;
-    currentChamadoMdPath = null;
+
+    // Abre painel imediatamente com loading state
+    document.getElementById('panel-overlay').classList.add('open');
+    document.getElementById('panel-chamado').classList.add('open');
+    document.getElementById('panel-urgency-bar').style.background = '#333';
+    document.getElementById('panel-id').textContent = '…';
+    document.getElementById('panel-titulo').textContent = 'Carregando';
+    document.getElementById('panel-meta').innerHTML = '';
+    document.getElementById('panel-md').textContent = 'Carregando nota…';
+
     const resp = await fetch(`${API}/api/chamados/${id}`);
+    if (!resp.ok) { document.getElementById('panel-titulo').textContent = 'Chamado não encontrado'; return; }
     const c = await resp.json();
-    document.getElementById('modal-titulo').textContent = `Chamado #${c.id}`;
-    const nivel = c.criticidade_confirmada || c.criticidade_sugerida;
-    document.getElementById('modal-chamado-body').innerHTML = `
-      <div class="flex gap-2 mb-2">${badgeHtml(nivel)}<span class="text-slate-400 text-sm">${c.status}</span></div>
-      <p class="text-sm text-slate-300 mb-3">${c.descricao}</p>
-      <p class="text-xs text-slate-500">Reportado por ${c.aberto_por} · ${c.setor_reportador} · ${tempoAberto(c.criado_em)} atrás</p>
-      ${c.resolucao ? `<div class="mt-3 bg-green-900 rounded-xl p-3"><p class="text-xs text-green-300 font-semibold">RESOLUÇÃO</p><p class="text-sm text-green-200 mt-1">${c.resolucao}</p></div>` : ''}
-      ${c.historico && c.historico.length ? `
-        <div class="mt-3 border-t border-slate-700 pt-3">
-          <p class="text-xs text-slate-400 mb-2 font-medium">HISTÓRICO</p>
-          ${c.historico.map(h => `<p class="text-xs text-slate-500">${h.status_anterior} → ${h.status_novo} (${h.alterado_por})</p>`).join('')}
-        </div>` : ''}
+
+    copSetCtx(c);
+
+    const nivel = c.criticidade_confirmada || c.criticidade_sugerida || 'baixo';
+    const color = urgencyColor[nivel] || '#555';
+
+    document.getElementById('panel-urgency-bar').style.background = color;
+    document.getElementById('panel-id').textContent = fmtId(c);
+    document.getElementById('panel-titulo').textContent = (c.descricao || '').split('\n')[0].slice(0, 90);
+    document.getElementById('panel-meta').innerHTML = `
+      ${badge(nivel)}
+      ${statusBadge(c.status)}
+      <span style="font-size:11px;color:var(--text2);">⏱ ${tempoAberto(c.criado_em)} atrás</span>
+      <span style="font-size:11px;color:var(--text2);">🏥 ${c.setor_reportador||'—'}</span>
+      <span style="font-size:11px;color:var(--text2);">👤 ${c.aberto_por||'—'}</span>
+      ${c.validado ? '' : '<span class="badge badge-pending">⏳ Pendente validação</span>'}
     `;
-    // Show .md link if available
-    const notaLink = document.getElementById('nota-md-link');
+
+    // MD
     if (c.md_path) {
-      currentChamadoMdPath = c.md_path;
-      notaLink.classList.remove('hidden');
+      try {
+        const r = await fetch(`${API}/api/chamados/${id}/md`);
+        if (r.ok) {
+          const d = await r.json();
+          document.getElementById('panel-md').innerHTML = renderMd(d.conteudo);
+        } else {
+          document.getElementById('panel-md').innerHTML = '<em style="color:var(--text3)">Arquivo .md não encontrado em disco.</em>';
+        }
+      } catch {
+        document.getElementById('panel-md').innerHTML = '<em style="color:var(--text3)">Erro ao carregar.</em>';
+      }
     } else {
-      notaLink.classList.add('hidden');
+      document.getElementById('panel-md').innerHTML = '<em style="color:var(--text3)">Sem nota .md — chamado criado antes do sistema de notas.</em>';
     }
-    document.getElementById('modal-chamado').classList.remove('hidden');
+
+    // Form state
+    const resolvido = c.status === 'resolvido';
+    const resForm = document.getElementById('res-form');
+    resForm.style.display = resolvido ? 'none' : 'flex';
+    document.getElementById('btn-iniciar').style.display = resolvido ? 'none' : '';
+    document.getElementById('select-crit').disabled = resolvido;
+    document.getElementById('btn-crit').disabled = resolvido;
+    document.getElementById('inp-tecnico').value = '';
+    document.getElementById('ta-resolucao').value = '';
   }
 
-  async function verNotaMd() {
-    if (!currentChamadoId) return;
-    // Fetch the chamado again to get md_path
-    const resp = await fetch(`${API}/api/chamados/${currentChamadoId}`);
-    const c = await resp.json();
-    if (!c.md_path) { alert('Nota .md não disponível para este chamado.'); return; }
-    // We can't read files directly from browser; show path info
-    document.getElementById('conteudo-md-modal').textContent =
-      `Nota salva em:\n${c.md_path}\n\nAbra o arquivo no explorador de arquivos para visualizar o conteúdo completo.`;
-    document.getElementById('modal-md').classList.remove('hidden');
-  }
-
-  document.getElementById('btn-iniciar-atend').addEventListener('click', async () => {
+  document.getElementById('btn-iniciar').addEventListener('click', async () => {
     if (!currentChamadoId) return;
     await fetch(`${API}/api/chamados/${currentChamadoId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ status: 'em_andamento', alterado_por: 'técnico' }),
     });
-    fecharModal('modal-chamado');
+    await abrirChamado(currentChamadoId);
     carregarFila();
   });
 
-  document.getElementById('btn-confirmar-crit').addEventListener('click', async () => {
-    const crit = document.getElementById('select-criticidade').value;
+  document.getElementById('btn-crit').addEventListener('click', async () => {
+    const crit = document.getElementById('select-crit').value;
     if (!crit || !currentChamadoId) return;
     await fetch(`${API}/api/chamados/${currentChamadoId}/criticidade`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ criticidade_confirmada: crit }),
     });
-    fecharModal('modal-chamado');
+    await abrirChamado(currentChamadoId);
     carregarFila();
   });
 
   document.getElementById('btn-resolver').addEventListener('click', async () => {
-    const res = document.getElementById('textarea-resolucao').value.trim();
-    const tecnico = document.getElementById('input-tecnico-resolucao').value.trim() || 'técnico';
+    const res = document.getElementById('ta-resolucao').value.trim();
+    const tec = document.getElementById('inp-tecnico').value.trim();
     if (!currentChamadoId) return;
-    if (!res) { alert('Informe a resolução.'); return; }
-    await fetch(`${API}/api/chamados/${currentChamadoId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'resolvido', alterado_por: tecnico, resolucao: res }),
-    });
-    fecharModal('modal-chamado');
-    carregarFila();
+    if (!tec) { showToast('Informe o nome do técnico.', true); return; }
+    if (!res) { showToast('Descreva a resolução.', true); return; }
+
+    const btn = document.getElementById('btn-resolver');
+    btn.disabled = true; btn.textContent = '⏳ Indexando cluster…';
+    try {
+      const r = await fetch(`${API}/api/chamados/${currentChamadoId}/status`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ status: 'resolvido', alterado_por: tec, resolucao: res }),
+      });
+      if (r.ok) {
+        showToast('Resolução registrada! Wikilinks gerados.');
+        await abrirChamado(currentChamadoId);
+        carregarFila();
+      } else { showToast('Erro ao registrar resolução.', true); }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✓ Registrar resolução e atualizar cluster';
+    }
   });
 
-  // ---- AGENDA ----
-  function labelMes(d) {
-    return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-  }
-
-  function mudarMes(delta) {
-    mesAtual.setMonth(mesAtual.getMonth() + delta);
-    carregarAgenda();
-  }
+  // ── AGENDA ─────────────────────────────────
+  function mudarMes(d) { mesAtual.setMonth(mesAtual.getMonth() + d); carregarAgenda(); }
 
   async function carregarAgenda() {
     const ano = mesAtual.getFullYear();
-    const mes = String(mesAtual.getMonth() + 1).padStart(2, '0');
-    document.getElementById('label-mes').textContent = labelMes(mesAtual);
-    const resp = await fetch(`${API}/api/agenda?mes=${ano}-${mes}`);
-    agendaData = await resp.json();
+    const mes = String(mesAtual.getMonth()+1).padStart(2,'0');
+    document.getElementById('label-mes').textContent =
+      mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    try { const r = await fetch(`${API}/api/agenda?mes=${ano}-${mes}`); agendaData = await r.json(); }
+    catch { agendaData = []; }
     renderCalendario(ano, mesAtual.getMonth());
     document.getElementById('lista-dia').classList.add('hidden');
   }
 
   function renderCalendario(ano, mes) {
-    const container = document.getElementById('dias-calendario');
+    const c = document.getElementById('dias-calendario');
     const primeiro = new Date(ano, mes, 1).getDay();
-    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    const dias = new Date(ano, mes+1, 0).getDate();
     const porDia = {};
-    agendaData.forEach(a => {
-      const d = a.data_programada;
-      if (!porDia[d]) porDia[d] = [];
-      porDia[d].push(a);
-    });
+    agendaData.forEach(a => { if (!porDia[a.data_programada]) porDia[a.data_programada] = []; porDia[a.data_programada].push(a); });
     let html = '';
-    for (let i = 0; i < primeiro; i++) html += '<div></div>';
-    for (let d = 1; d <= diasNoMes; d++) {
+    for (let i=0; i<primeiro; i++) html += '<div></div>';
+    for (let d=1; d<=dias; d++) {
       const key = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const count = (porDia[key] || []).length;
-      const hoje = new Date().getDate() === d && new Date().getMonth() === mes && new Date().getFullYear() === ano;
-      html += `<div onclick="selecionarDia('${key}')"
-        class="cursor-pointer rounded-lg p-2 text-center text-sm hover:bg-slate-700 transition ${hoje ? 'bg-blue-900 font-bold' : ''}">
-        ${d}${count ? `<div class="w-1.5 h-1.5 bg-blue-400 rounded-full mx-auto mt-0.5"></div>` : ''}
+      const count = (porDia[key]||[]).length;
+      const hoje = new Date().getDate()===d && new Date().getMonth()===mes && new Date().getFullYear()===ano;
+      html += `<div onclick="selecionarDia('${key}')" class="cal-day ${hoje?'today':''}">
+        ${d}${count?'<div class="pip"></div>':''}
       </div>`;
     }
-    container.innerHTML = html;
+    c.innerHTML = html;
   }
 
   function selecionarDia(key) {
-    const lista = document.getElementById('lista-dia');
-    const manutencoes = agendaData.filter(a => a.data_programada === key);
-    document.getElementById('titulo-dia').textContent = `Manutenções — ${key}`;
-    if (manutencoes.length === 0) {
-      document.getElementById('manutencoes-dia').innerHTML = '<p class="text-slate-500 text-sm">Nenhuma manutenção neste dia.</p>';
-    } else {
-      document.getElementById('manutencoes-dia').innerHTML = manutencoes.map(a => `
-        <div class="flex items-center justify-between py-2 border-b border-slate-700">
-          <div>
-            <p class="font-medium text-sm">Agenda #${a.id}</p>
-            <p class="text-xs text-slate-400">${a.status}</p>
-          </div>
-          ${a.status === 'pendente' ? `<button onclick="abrirExecutar(${a.id})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition">Executar</button>` : '<span class="text-green-400 text-xs">✓ Executado</span>'}
-        </div>`).join('');
-    }
-    lista.classList.remove('hidden');
+    const el = document.getElementById('lista-dia');
+    const items = agendaData.filter(a => a.data_programada === key);
+    document.getElementById('titulo-dia').textContent = `Manutenções · ${key}`;
+    document.getElementById('manutencoes-dia').innerHTML = items.length
+      ? items.map(a => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:600;">Agenda #${a.id}</div>
+              <div style="font-size:11px;color:var(--text2);">${a.status}</div>
+            </div>
+            ${a.status === 'pendente'
+              ? `<button onclick="abrirExecutar(${a.id})" class="btn btn-ghost" style="font-size:12px;">Executar</button>`
+              : '<span class="badge badge-ok">✓ Executado</span>'}
+          </div>`).join('')
+      : '<p style="color:var(--text3);font-size:12px;">Nenhuma manutenção neste dia.</p>';
+    el.classList.remove('hidden');
   }
 
-  async function abrirExecutar(id) {
+  function abrirExecutar(id) {
     currentAgendaId = id;
-    document.getElementById('checklist-content').innerHTML = '<p class="text-slate-400 italic">Gerando checklist com IA...</p>';
+    document.getElementById('checklist-content').innerHTML = '<span style="color:var(--text2)">Checklist preventivo padrão.</span>';
     document.getElementById('input-tecnico').value = '';
     document.getElementById('input-obs').value = '';
-    document.getElementById('modal-executar').classList.remove('hidden');
+    abrirModal('modal-executar');
   }
 
   document.getElementById('btn-confirmar-exec').addEventListener('click', async () => {
-    const tecnico = document.getElementById('input-tecnico').value.trim();
-    if (!tecnico) { alert('Informe o nome do técnico.'); return; }
+    const tec = document.getElementById('input-tecnico').value.trim();
+    if (!tec) { showToast('Informe o técnico.', true); return; }
     await fetch(`${API}/api/agenda/${currentAgendaId}/executar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tecnico, observacoes: document.getElementById('input-obs').value }),
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tecnico: tec, observacoes: document.getElementById('input-obs').value }),
     });
     fecharModal('modal-executar');
     carregarAgenda();
+    showToast('Manutenção registrada!');
   });
 
-  // ---- EQUIPAMENTOS ----
+  // ── EQUIPAMENTOS ───────────────────────────
   async function carregarEquipamentos() {
-    const resp = await fetch(`${API}/api/equipamentos`);
-    todosEquipamentos = await resp.json();
+    const r = await fetch(`${API}/api/equipamentos`);
+    todosEquipamentos = await r.json();
     renderEquipamentos(todosEquipamentos);
   }
 
   function renderEquipamentos(lista) {
-    const tbody = document.getElementById('tabela-equipamentos');
-    if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum equipamento cadastrado.</td></tr>';
+    const c = document.getElementById('lista-eq');
+    if (!lista.length) {
+      c.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔧</div><div class="empty-title">Nenhum equipamento</div></div>';
       return;
     }
-    tbody.innerHTML = lista.map(e => `
-      <tr class="border-b border-slate-700 hover:bg-slate-800">
-        <td class="p-3 font-mono text-blue-400">${e.patrimonio}</td>
-        <td class="p-3">${e.descricao}</td>
-        <td class="p-3 text-slate-400">${e.setor}</td>
-        <td class="p-3 text-slate-400">${e.tipo}</td>
-        <td class="p-3">${e.ativo ? '<span class="text-green-400 text-xs">Ativo</span>' : '<span class="text-slate-500 text-xs">Inativo</span>'}</td>
-      </tr>`).join('');
+    c.innerHTML = lista.map(e => `
+      <div class="eq-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span class="eq-pat">${e.patrimonio}</span>
+          ${e.ativo ? '<span class="badge badge-ok">ativo</span>' : '<span class="badge badge-status">inativo</span>'}
+        </div>
+        <div class="eq-desc">${e.descricao}</div>
+        <div class="eq-meta">${e.tipo} · ${e.setor}</div>
+      </div>`).join('');
   }
 
   function filtrarEquipamentos() {
@@ -537,189 +1470,215 @@
     ));
   }
 
-  function abrirModalNovoEq() {
-    document.getElementById('form-novo-eq').reset();
-    document.getElementById('modal-novo-eq').classList.remove('hidden');
-  }
+  function abrirModalNovoEq() { document.getElementById('form-novo-eq').reset(); abrirModal('modal-novo-eq'); }
 
   document.getElementById('form-novo-eq').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
     if (f.intervalo_preventivo_dias) f.intervalo_preventivo_dias = parseInt(f.intervalo_preventivo_dias);
     else delete f.intervalo_preventivo_dias;
-    await fetch(`${API}/api/equipamentos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(f),
+    const r = await fetch(`${API}/api/equipamentos`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(f),
     });
-    fecharModal('modal-novo-eq');
-    carregarEquipamentos();
+    if (r.ok) { fecharModal('modal-novo-eq'); carregarEquipamentos(); showToast('Equipamento cadastrado!'); }
+    else showToast('Erro ao salvar.', true);
   });
 
-  // ---- MÉTRICAS ----
+  // ── MÉTRICAS ───────────────────────────────
   async function carregarMetricas() {
-    const resp = await fetch(`${API}/api/metricas`);
-    const m = await resp.json();
+    const r = await fetch(`${API}/api/metricas`);
+    const m = await r.json();
+
+    document.getElementById('tb-sla').textContent = `${m.sla_medio_horas}h`;
 
     document.getElementById('cards-metricas').innerHTML = `
-      <div class="card p-5 text-center"><p class="text-3xl font-bold text-red-400">${m.chamados_abertos}</p><p class="text-slate-400 text-sm mt-1">Chamados abertos</p></div>
-      <div class="card p-5 text-center"><p class="text-3xl font-bold text-blue-400">${m.chamados_mes}</p><p class="text-slate-400 text-sm mt-1">Chamados este mês</p></div>
-      <div class="card p-5 text-center"><p class="text-3xl font-bold text-green-400">${m.sla_medio_horas}h</p><p class="text-slate-400 text-sm mt-1">SLA médio</p></div>
-      <div class="card p-5 text-center"><p class="text-3xl font-bold text-purple-400">${m.fontes_conhecimento ?? 0}</p><p class="text-slate-400 text-sm mt-1">Fontes de conhecimento</p></div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#fca5a5;">${m.chamados_abertos}</div>
+        <div class="stat-lbl">Chamados abertos</div>
+        <div class="stat-bar" style="background:#dc2626;width:${Math.min(100,m.chamados_abertos*10)}%"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--violet-lt);">${m.chamados_mes}</div>
+        <div class="stat-lbl">Chamados este mês</div>
+        <div class="stat-bar" style="background:var(--violet);width:60%"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#6ee7b7;">${m.sla_medio_horas}h</div>
+        <div class="stat-lbl">SLA médio de resolução</div>
+        <div class="stat-bar" style="background:#16a34a;width:45%"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#fcd34d;">${m.fontes_conhecimento ?? 0}</div>
+        <div class="stat-lbl">Notas na Memória da IA</div>
+        <div class="stat-bar" style="background:#ca8a04;width:${Math.min(100,(m.fontes_conhecimento||0)*5)}%"></div>
+      </div>
     `;
 
     if (chartSetor) chartSetor.destroy();
-    if (chartCrit) chartCrit.destroy();
+    if (chartCrit)  chartCrit.destroy();
 
-    const ctxSetor = document.getElementById('chart-setor').getContext('2d');
-    chartSetor = new Chart(ctxSetor, {
+    const grid = '#1a1a1a', lbl = '#666';
+
+    chartSetor = new Chart(document.getElementById('chart-setor').getContext('2d'), {
       type: 'bar',
       data: {
         labels: m.por_setor.map(x => x.setor),
-        datasets: [{ label: 'Chamados', data: m.por_setor.map(x => x.total), backgroundColor: '#3b82f6' }],
+        datasets: [{ data: m.por_setor.map(x => x.total), backgroundColor: '#7c3aed', borderRadius: 4, borderSkipped: false }],
       },
-      options: { plugins: { legend: { display: false }, title: { display: true, text: 'Chamados por setor', color: '#94a3b8' } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } },
+      options: {
+        plugins: { legend:{display:false}, title:{display:true,text:'Chamados por setor',color:lbl,font:{size:11}} },
+        scales: {
+          x: { ticks:{color:lbl,font:{size:10}}, grid:{color:grid} },
+          y: { ticks:{color:lbl,font:{size:10}}, grid:{color:grid} }
+        }
+      }
     });
 
-    const cores = { critico: '#dc2626', alto: '#ea580c', medio: '#ca8a04', baixo: '#16a34a', desconhecido: '#64748b' };
-    const ctxCrit = document.getElementById('chart-criticidade').getContext('2d');
-    chartCrit = new Chart(ctxCrit, {
-      type: 'pie',
+    const cores = { critico:'#dc2626', alto:'#ea580c', medio:'#ca8a04', baixo:'#16a34a', desconhecido:'#333' };
+    chartCrit = new Chart(document.getElementById('chart-criticidade').getContext('2d'), {
+      type: 'doughnut',
       data: {
         labels: m.por_criticidade.map(x => x.nivel),
-        datasets: [{ data: m.por_criticidade.map(x => x.total), backgroundColor: m.por_criticidade.map(x => cores[x.nivel] || '#64748b') }],
+        datasets: [{
+          data: m.por_criticidade.map(x => x.total),
+          backgroundColor: m.por_criticidade.map(x => cores[x.nivel]||'#333'),
+          borderColor: '#080808', borderWidth: 3,
+        }],
       },
-      options: { plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: 'Por criticidade', color: '#94a3b8' } } },
+      options: {
+        plugins: {
+          legend: { labels:{color:lbl,font:{size:11}} },
+          title: { display:true, text:'Por criticidade', color:lbl, font:{size:11} }
+        }
+      }
     });
 
     document.getElementById('tabela-top-eq').innerHTML = m.top_equipamentos.map(e => `
-      <tr class="border-b border-slate-700">
-        <td class="p-2 font-mono text-blue-400">${e.patrimonio}</td>
-        <td class="p-2 text-slate-300">${e.descricao}</td>
-        <td class="p-2 text-right text-slate-300">${e.total_chamados}</td>
-      </tr>`).join('');
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <span class="eq-pat">${e.patrimonio}</span>
+          <span style="color:var(--text);font-size:13px;margin-left:10px;">${e.descricao}</span>
+        </div>
+        <span style="font-weight:700;color:var(--text2);">${e.total_chamados}</span>
+      </div>`).join('') || '<p style="color:var(--text3);font-size:12px;">Sem dados.</p>';
   }
 
-  // ---- KNOWLEDGE BASE ----
-  async function carregarKnowledge() {
-    const resp = await fetch(`${API}/api/knowledge/fontes`);
-    const fontes = await resp.json();
+  // ── COPILOT ────────────────────────────────
+  let copHistory = [];
+  let copOpen = false;
 
-    const tipos = {
-      chamado_resolvido: 'Chamados Resolvidos',
-      chamado_aberto: 'Chamados Abertos',
-      manual: 'Manuais Técnicos',
-      protocolo: 'Protocolos Hospitalares',
-      documento: 'Documentos Gerais',
-    };
-
-    const grupos = {};
-    fontes.forEach(f => {
-      const g = f.tipo;
-      if (!grupos[g]) grupos[g] = [];
-      grupos[g].push(f);
-    });
-
-    const container = document.getElementById('fontes-conhecimento');
-    if (Object.keys(grupos).length === 0) {
-      container.innerHTML = '<p class="text-slate-500 text-sm">Nenhuma fonte indexada ainda. Adicione manuais, protocolos ou resolva chamados para popular a base.</p>';
-      return;
-    }
-
-    container.innerHTML = Object.entries(grupos).map(([tipo, lista]) => `
-      <div class="card p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-slate-200">${tipos[tipo] || tipo} <span class="text-slate-500 text-sm">(${lista.length})</span></h3>
-        </div>
-        <div class="flex flex-col gap-2">
-          ${lista.map(f => `
-            <div class="flex items-start justify-between border-b border-slate-700 pb-2">
-              <div>
-                <p class="text-sm font-medium text-slate-200">${f.titulo}</p>
-                <p class="text-xs text-slate-500 mt-0.5">${f.indexado_em ? new Date(f.indexado_em).toLocaleDateString('pt-BR') : ''}</p>
-                <div class="flex flex-wrap gap-1 mt-1">
-                  ${(Array.isArray(f.tags) ? f.tags : []).map(t => `<span class="tag-badge">${t}</span>`).join('')}
-                </div>
-              </div>
-              <button onclick="removerFonte(${f.id})" class="text-slate-500 hover:text-red-400 text-xs ml-3 mt-1">✕</button>
-            </div>`).join('')}
-        </div>
-      </div>`).join('');
+  function toggleCop() {
+    copOpen = !copOpen;
+    document.getElementById('cop-window').classList.toggle('open', copOpen);
+    document.getElementById('cop-bubble').classList.toggle('active', copOpen);
+    if (copOpen) document.getElementById('cop-input').focus();
   }
 
-  async function buscarKnowledge() {
-    const q = document.getElementById('busca-knowledge').value.trim();
-    if (!q) return;
-    const resultadosEl = document.getElementById('resultados-busca');
-    resultadosEl.innerHTML = '<p class="text-slate-400 text-sm italic">Buscando...</p>';
-    try {
-      const resp = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(q)}`);
-      const resultados = await resp.json();
-      if (!resultados.length) {
-        resultadosEl.innerHTML = '<p class="text-slate-500 text-sm">Nenhum resultado encontrado.</p>';
-        return;
+  function copAddMsg(texto, lado) {
+    const c = document.getElementById('cop-msgs');
+    const d = document.createElement('div');
+    d.className = lado === 'ai' ? 'cmsg-ai' : 'cmsg-user';
+    if (lado === 'ai') d.innerHTML = `<span class="cmsg-label">🤖 Copiloto</span>${texto}`;
+    else d.textContent = texto;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+    return d;
+  }
+
+  function copSetCtx(chamado) {
+    const ctx = document.getElementById('cop-ctx');
+    if (!chamado) { ctx.textContent = ''; ctx.classList.remove('has'); return; }
+    const nivel = chamado.criticidade_confirmada || chamado.criticidade_sugerida || '—';
+    ctx.textContent = `📋 Contexto: ${fmtId(chamado)} · ${nivel} · ${chamado.setor_reportador || '—'}`;
+    ctx.classList.add('has');
+  }
+
+  async function enviarCop() {
+    const input = document.getElementById('cop-input');
+    const txt = input.value.trim();
+    if (!txt) return;
+    input.value = '';
+
+    copAddMsg(txt, 'user');
+    copHistory.push({ role: 'user', content: txt });
+
+    // Enrich with context of open chamado
+    let ctx = '';
+    if (currentChamadoId) {
+      const chamado = todosChamados.find(c => c.id === currentChamadoId);
+      if (chamado) {
+        ctx = `[Contexto do chamado aberto: id=${fmtId(chamado)}, setor=${chamado.setor_reportador||'—'}, criticidade=${chamado.criticidade_confirmada||chamado.criticidade_sugerida||'—'}, descrição="${(chamado.descricao||'').substring(0,200)}"]`;
       }
-      resultadosEl.innerHTML = resultados.map((r, i) => `
-        <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-          <p class="text-xs text-blue-400 font-semibold mb-1">[${i+1}] ${r.fonte}</p>
-          <p class="text-sm text-slate-300">${r.trecho.substring(0, 300)}${r.trecho.length > 300 ? '...' : ''}</p>
-        </div>`).join('');
-    } catch {
-      resultadosEl.innerHTML = '<p class="text-red-400 text-sm">Erro ao buscar. Verifique se o Ollama está rodando.</p>';
     }
-  }
 
-  document.getElementById('busca-knowledge').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') buscarKnowledge();
-  });
+    const msgDiv = copAddMsg('', 'ai');
+    const span = document.createElement('span');
+    msgDiv.appendChild(span);
 
-  async function removerFonte(id) {
-    if (!confirm('Remover esta fonte da base de conhecimento?')) return;
-    await fetch(`${API}/api/knowledge/fontes/${id}`, { method: 'DELETE' });
-    carregarKnowledge();
-  }
-
-  function abrirModalUpload() {
-    document.getElementById('form-upload').reset();
-    document.getElementById('modal-upload').classList.remove('hidden');
-  }
-
-  document.getElementById('form-upload').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btn-upload-submit');
-    btn.disabled = true;
-    btn.textContent = 'Indexando...';
-
-    const formData = new FormData(e.target);
-    // Parse tags from text input to JSON array
-    const tagsInput = formData.get('tags_input') || '';
-    const tagsArray = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-    formData.delete('tags_input');
-    formData.set('tags', JSON.stringify(tagsArray));
-
+    let full = '';
     try {
-      const resp = await fetch(`${API}/api/knowledge/upload`, {
+      const resp = await fetch(`${API}/ai/chat/stream`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: ctx ? `${ctx}\n\n${txt}` : txt,
+          historico: copHistory.slice(-6),
+          modo: 'copiloto'
+        })
       });
-      if (!resp.ok) {
-        const err = await resp.json();
-        alert(`Erro: ${err.detail || 'Falha no upload'}`);
-        return;
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ch = JSON.parse(line.slice(6));
+            if (ch.token) { full += ch.token; span.textContent = full; msgDiv.scrollIntoView({ block: 'end' }); }
+          } catch {}
+        }
       }
-      fecharModal('modal-upload');
-      carregarKnowledge();
-    } catch {
-      alert('Erro ao enviar arquivo. Tente novamente.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Indexar na base de conhecimento';
-    }
+      copHistory.push({ role: 'assistant', content: full });
+      // Render source cards from RAG
+      try {
+        const sr = await fetch(`${API}/api/knowledge/buscar?q=${encodeURIComponent(txt)}`);
+        if (sr.ok) {
+          const fontes = await sr.json();
+          const mostradas = fontes.slice(0, 3).filter(f => f.trecho && f.trecho.length > 20);
+          if (mostradas.length) {
+            const srcDiv = document.createElement('div');
+            srcDiv.className = 'cop-sources';
+            const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            srcDiv.innerHTML = `<div class="cop-src-label">📎 Fontes consultadas</div>` +
+              mostradas.map(f => `<div class="cop-src-card"><div class="cop-src-title">${esc(f.fonte||'—')}</div><div class="cop-src-snippet">${esc((f.trecho||'').slice(0,220))}</div></div>`).join('');
+            msgDiv.after(srcDiv);
+            document.getElementById('cop-msgs').scrollTop = 9999;
+          }
+        }
+      } catch {}
+    } catch { span.textContent = 'Erro ao conectar.'; }
+  }
+
+  document.getElementById('cop-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') enviarCop();
   });
 
-  // ---- Init ----
+  // ── Init ───────────────────────────────────
   carregarFila();
-  setInterval(carregarFila, 30000);
+  setInterval(() => {
+    if (document.getElementById('sec-fila').style.display !== 'none') carregarFila();
+  }, 30000);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      fecharPanel();
+      ['modal-novo-eq','modal-executar'].forEach(id => fecharModal(id));
+    }
+  });
 </script>
 </body>
 </html>

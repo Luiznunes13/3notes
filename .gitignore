@@ -2,10 +2,10 @@
 3notes.db
 medmanu.db
 
-# Generated knowledge base (re-created by seed_demo.py)
+# Auto-generated tickets (re-created by seed scripts)
 knowledge/chamados/
-knowledge/manuais/
-knowledge/protocolos/
+
+# Curated docs (manuais/ e protocolos/) are committed — part of the project
 
 # ChromaDB persistent data (re-created by seed_demo.py)
 chromadb/

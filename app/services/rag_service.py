@@ -13,7 +13,10 @@ CHROMADB_DIR = os.getenv("CHROMADB_DIR", "./chromadb")
 COLLECTION_NAME = "3notes_knowledge"
 
 
-def _chunk_text(text: str, max_words: int = 500, overlap_words: int = 50) -> list[str]:
+EMBED_DIMS = 1024  # Matryoshka truncation: 1024 of 4096 dims from qwen3-embedding
+
+
+def _chunk_text(text: str, max_words: int = 250, overlap_words: int = 30) -> list[str]:
     """Split text into overlapping chunks by paragraphs."""
     paragraphs = [p.strip() for p in re.split(r"\n\n+", text) if p.strip()]
     chunks = []
@@ -91,9 +94,13 @@ class RAGService:
         return doc_id
 
     async def buscar_contexto(
-        self, query: str, n_resultados: int = 3, filtros: dict = None
+        self, query: str, n_resultados: int = 3, filtros: dict = None,
+        distancia_max: float = 0.45,
     ) -> list[str]:
-        """Semantic search — returns list of relevant text snippets."""
+        """Semantic search — returns only chunks below distancia_max (cosine distance).
+        distancia_max=0.45 → cosine similarity ≥ 0.55 (relevante).
+        Chunks acima do threshold são descartados para evitar alucinação de citação.
+        """
         from app.services.ollama_service import ollama_service
 
         embedding = await ollama_service.embed(query)
@@ -110,11 +117,15 @@ class RAGService:
                 include=["documents", "metadatas", "distances"],
             )
             snippets = []
-            docs = results.get("documents", [[]])[0]
-            metas = results.get("metadatas", [[]])[0]
-            for doc, meta in zip(docs, metas):
+            docs      = results.get("documents", [[]])[0]
+            metas     = results.get("metadatas",  [[]])[0]
+            distances = results.get("distances",  [[]])[0]
+            for doc, meta, dist in zip(docs, metas, distances):
+                if dist > distancia_max:
+                    continue  # descarta chunk irrelevante
                 fonte = meta.get("titulo", meta.get("arquivo_path", "desconhecido"))
-                snippets.append(f"({fonte})\n{doc}")
+                trecho = doc[:600] + "..." if len(doc) > 600 else doc
+                snippets.append(f"({fonte})\n{trecho}")
             return snippets
         except Exception:
             return []
