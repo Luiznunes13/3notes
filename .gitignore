@@ -14,6 +14,9 @@ chromadb/
 .env
 uploads/
 
+# Obsidian vault (local notes, not part of the project)
+hackathon/
+
 # Python
 __pycache__/
 *.pyc

@@ -100,6 +100,7 @@ class RAGService:
         """Semantic search — returns only chunks below distancia_max (cosine distance).
         distancia_max=0.45 → cosine similarity ≥ 0.55 (relevante).
         Chunks acima do threshold são descartados para evitar alucinação de citação.
+        Após o vector search, expande via wikilinks [[CHM-YYYY-NNNN]] (2-hop graph expansion).
         """
         from app.services.ollama_service import ollama_service
 
@@ -126,9 +127,60 @@ class RAGService:
                 fonte = meta.get("titulo", meta.get("arquivo_path", "desconhecido"))
                 trecho = doc[:600] + "..." if len(doc) > 600 else doc
                 snippets.append(f"({fonte})\n{trecho}")
+
+            # 2-hop graph expansion: follow [[wikilinks]] found in retrieved chunks
+            expansao = self._expandir_por_wikilinks(docs, snippets)
+            snippets.extend(expansao)
+
             return snippets
         except Exception:
             return []
+
+    def _expandir_por_wikilinks(
+        self,
+        docs_brutos: list[str],
+        snippets_existentes: list[str],
+        max_vizinhos: int = 2,
+    ) -> list[str]:
+        """Follow [[CHM-YYYY-NNNN]] wikilinks found in retrieved chunks (2-hop expansion).
+
+        Reads linked .md files from disk and injects them as additional context,
+        even when they are semantically distant from the query.
+        Skips documents already present in snippets_existentes.
+        """
+        from pathlib import Path
+
+        knowledge_dir = os.getenv("KNOWLEDGE_DIR", "./knowledge")
+
+        # Track IDs already in initial results to avoid duplication
+        ja_incluidos: set[str] = set()
+        for sn in snippets_existentes:
+            for m in re.findall(r"CHM-\d{4}-\d{4}", sn):
+                ja_incluidos.add(m)
+
+        # Parse [[CHM-YYYY-NNNN]] wikilinks from all retrieved chunk texts
+        wikilinks: set[str] = set()
+        for doc in docs_brutos:
+            for m in re.findall(r"\[\[([A-Z]+-\d{4}-\d{4})\]\]", doc):
+                wikilinks.add(m)
+
+        extras: list[str] = []
+        for chamado_id in wikilinks:
+            if len(extras) >= max_vizinhos:
+                break
+            if chamado_id in ja_incluidos:
+                continue
+            md_path = Path(knowledge_dir) / "chamados" / f"{chamado_id}.md"
+            if md_path.exists():
+                try:
+                    conteudo = md_path.read_text(encoding="utf-8")
+                    trecho = conteudo[:600] + "..." if len(conteudo) > 600 else conteudo
+                    extras.append(f"(Via grafo — {chamado_id})\n{trecho}")
+                    ja_incluidos.add(chamado_id)
+                except Exception:
+                    continue
+
+        return extras
 
     def remover_documento(self, arquivo_path: str):
         """Remove all chunks for a document from ChromaDB."""

@@ -1,87 +1,247 @@
 # 3Notes.AI — Technical Write-up
-
-## 1. Problem Statement
-
-Brazil's public hospital network (SUS) faces a silent crisis: over **43,000 medical devices** are out of service at any given time due to lack of structured maintenance management (source: CNES/Ministry of Health). Ventilators, autoclaves, infusion pumps — critical equipment that keeps patients alive — fail without warning because hospitals have no system to track them, schedule preventive maintenance, or learn from past failures.
-
-The root cause is not a lack of competent technicians. It is a lack of **systems that preserve and accumulate their knowledge**. Maintenance today is managed with paper notebooks and spreadsheets. When a technician fixes a recurring fault on a ventilator, that knowledge exists only in their head. When their shift ends — or when they leave the hospital — that knowledge vanishes.
-
-## 2. Why Knowledge Matters
-
-The real cost of poor maintenance management is not just broken equipment. It is **the compounding loss of institutional knowledge**. A technician who has fixed the same infusion pump alarm a dozen times knows the exact sensor to replace, the correct recalibration sequence, and which replacement parts to keep in stock. A new technician facing the same problem from scratch will spend hours, delay treatment, and potentially escalate a simple fix into a critical incident.
-
-Knowledge management in hospital maintenance is not a luxury — it is patient safety infrastructure. Every hospital should have a system that gets smarter with each resolved ticket, so that the next technician benefits from every previous one.
-
-## 3. Solution: 3Notes.AI
-
-**3Notes.AI** is a three-application system that transforms maintenance tickets into a living knowledge base. It is designed specifically for the infrastructure that SUS hospitals already have: a local Linux server, a network, and browsers on staff mobile devices.
-
-The three applications work together:
-- **App 1 (Reporter):** Staff reports problems via a mobile-first chat interface powered by Gemma 4. The AI collects structured data conversationally, then generates a `.md` note that the user can review, edit tags on, and confirm — inspired by Obsidian's note-taking philosophy.
-- **App 2 (Dashboard):** Technicians manage the ticket queue, preventive schedule, and knowledge base. When they resolve a ticket, the system automatically updates the `.md` note and re-indexes it in ChromaDB.
-- **App 3 (Gemma 4 Engine):** Gemma 4 via Ollama, running entirely on the hospital's server. ChromaDB provides vector search over all accumulated `.md` files.
-
-## 4. How We Use Gemma 4
-
-Gemma 4 is the **central intelligence** of 3Notes.AI — present at every step, not decorative.
-
-**Conversational intake:** Instead of asking staff to fill out complex forms, Gemma 4 conducts a structured conversation. It follows a strict protocol: collect the reporter's name, equipment asset number, problem description, and sector — asking one question at a time. This dramatically lowers the barrier to reporting, especially for non-technical staff. The model is instructed to suggest a criticality level with justification, making the AI's reasoning transparent and auditable.
-
-**RAG-powered responses:** Before every response, the system calls the embedding API to vectorize the user's latest message, queries ChromaDB for the most semantically similar chunks from resolved tickets, manuals, and protocols, and injects that context block into the Gemma 4 system prompt. The model is instructed: *"If you find a similar resolved ticket, suggest the same solution and cite the source."* This is how the system gets smarter over time — each resolved ticket makes the next one faster.
-
-**Metadata generation:** After the conversation concludes and the ticket is confirmed, Gemma 4 generates a concise, descriptive title (e.g., "Bomba de Infusão BI-005 — Alarme de oclusão contínuo") and 5–10 kebab-case tags in Portuguese for semantic indexing. This structured metadata is what makes the `.md` files useful for future retrieval.
-
-**Fallback support:** The system checks Ollama for available models on startup and automatically falls back from `gemma4:27b` to `gemma4:e4b` if the larger model is not available. This is configured via the `THREENNOTES_FALLBACK_MODEL` environment variable.
-
-## 5. The Knowledge Cycle
-
-The most important design decision in 3Notes.AI is treating the `.md` file as the **source of truth** — not the SQL database.
-
-When a ticket is opened: the AI generates a `.md` with YAML frontmatter (id, title, tags, asset number, sector, criticality, reporter, timestamp) plus sections for the problem description and conversation summary. This file is saved to `knowledge/chamados/` and indexed in ChromaDB.
-
-When the ticket is resolved: the technician enters the resolution in the Dashboard. The system appends a `## Resolução` section to the existing `.md`, updates the `status` and `resolvido_em` fields in the frontmatter, and re-indexes the updated document in ChromaDB.
-
-The next time a staff member reports a similar problem, the RAG system will retrieve this resolved ticket as context, and Gemma 4 will reference it in its response: *"This is similar to ticket CHM-2026-0042. The previous fix was: recalibrate the pressure sensor and replace the disposable set."*
-
-The cycle is self-reinforcing: every resolved ticket enriches the knowledge base, which improves future responses, which accelerates future resolutions.
-
-## 6. Why RAG, Not Fine-Tuning
-
-Fine-tuning Gemma 4 on hospital maintenance data would require periodic retraining, specialized infrastructure, and would risk overfitting to a specific hospital's data. More importantly, fine-tuning cannot incorporate new knowledge in real time.
-
-RAG, by contrast, allows the knowledge base to grow continuously — every new resolved ticket becomes immediately available for future queries. The model itself never changes; only the context changes. This mirrors the philosophy behind Google's NotebookLM: the model is a powerful but general reasoning engine; the knowledge comes from the documents you provide.
-
-For a hospital that resolves dozens of tickets per month, RAG means that after six months of operation, the system has a rich, searchable history of every problem and solution — and Gemma 4 can reason over all of it instantly.
-
-## 7. Why Local-First
-
-3Notes.AI runs entirely on the hospital's own server. No API calls leave the network. No patient-adjacent data is sent to external services. This is not just a privacy preference — it is a legal requirement under Brazil's LGPD (Lei Geral de Proteção de Dados) and essential for operating in healthcare environments.
-
-Beyond compliance, local-first means the system works even when the hospital's internet connection is down — which is common in public hospitals in smaller Brazilian cities. Maintenance cannot wait for connectivity.
-
-## 8. Technical Architecture
-
-The backend is a FastAPI application with SQLModel and SQLite for relational data. The knowledge engine combines ChromaDB (persistent vector store) with the Ollama embed API for generating embeddings. The frontend uses vanilla HTML/JS with TailwindCSS CDN — no build step, no Node.js, no framework. Any technician can open the dashboard in a browser on the hospital's local network.
-
-The `.md` file format bridges the human and machine worlds: human-readable for any technician, YAML frontmatter-parseable for SQL ingestion, and full-text embeddable for ChromaDB. One file format, three uses.
-
-## 9. Responsible AI Design
-
-**AI suggests, technician decides.** Criticality levels are always confirmable — the AI suggests "critical" with a justification, but the technician confirms or overrides. This keeps human judgment in the loop for all safety-relevant decisions.
-
-**Auditable.** Every AI-suggested tag, title, and criticality level is visible to the user before confirmation. The conversation history is stored in the ticket's `.md` file.
-
-**Non-invasive.** The `.md` files are plain text. If the AI service is down, the system degrades gracefully — tickets can still be created manually via the REST API. The knowledge base remains accessible as human-readable files.
-
-## 10. Impact & Vision
-
-3Notes.AI addresses an immediate, concrete problem: Brazilian public hospitals losing equipment and institutional knowledge. A hospital that deploys this system today will, in six months, have a searchable history of every maintenance ticket — and a Gemma 4 model that can reference that history to suggest solutions faster.
-
-But the architecture is generic. A `.md`-based knowledge management system powered by local RAG could serve any domain where institutional knowledge is at risk: school maintenance, municipal infrastructure, small manufacturing facilities. The vision for v1.3 is to make 3Notes.AI a general-purpose knowledge accumulation platform — free for individuals and small teams, with an enterprise tier for organizations that need shared knowledge bases across multiple locations.
-
-*"Every resolved ticket makes the next one faster."* That principle scales beyond hospitals. It scales to any organization that learns from its own experience — which is exactly what Gemma 4 makes possible without cloud dependency, without fine-tuning, and without sending sensitive data anywhere.
+## Gemma 4 Good Hackathon · Kaggle × Google DeepMind
 
 ---
 
-*3Notes.AI — Luiz Nunes · NCam Tecnologia Industrial · April 2026*
-*Gemma 4 Good Hackathon · Kaggle × Google DeepMind · CC-BY 4.0*
+## Overview
+
+**3Notes.AI** is a knowledge management system for hospital maintenance teams in Brazilian public hospitals. Every resolved maintenance ticket generates a structured `.md` file that is embedded into a vector knowledge base — making the system smarter with every interaction. Built entirely on local infrastructure with no GPU required, it demonstrates that Gemma 4 can deliver real institutional value in resource-constrained environments.
+
+---
+
+## The Problem
+
+Brazilian public hospitals have over **43,000 medical devices out of service** due to inadequate maintenance management (source: CNES/Ministry of Health). Maintenance today is managed with paper notebooks or shared spreadsheets — no structured history, no pattern recognition, no institutional memory.
+
+The deeper problem is knowledge loss: when a technician leaves, the hospital loses everything they learned about how to fix recurring issues on specific equipment. The next technician starts from scratch.
+
+---
+
+## The Solution
+
+3Notes.AI is organized around three types of notes — hence the name:
+
+```
+        [Master — Note 3]
+             /        \
+      Curation       Knowledge
+         /                \
+[Reporter — Note 1] — [Dashboard — Note 2]
+  "What happened"       "What worked"
+```
+
+- **Note 1 (Reporter):** Staff reports a problem via AI-guided chat. The system generates a structured `.md` file.
+- **Note 2 (Dashboard):** Technician resolves the ticket and documents root cause and resolution in the same `.md`.
+- **Note 3 (Master):** Administrator validates which resolved tickets enter the RAG knowledge base. Manages manuals and protocols.
+
+Together, the three notes form an institutional memory that learns from every occurrence.
+
+---
+
+## How Gemma 4 is Used
+
+Gemma 4 (via Ollama) is the **central intelligence** of the system — not a decorative feature:
+
+| Function | Implementation |
+|---|---|
+| **Conversational intake** | Conducts structured multi-turn chat to collect ticket data without forms |
+| **RAG copilot** | Retrieves relevant `.md` context from ChromaDB before each response |
+| **Source citation** | Cites previous cases as `[CHM-2026-0021]` or `[Document Name]` |
+| **Title generation** | Creates concise, unique titles for each `.md` note |
+| **Tag suggestion** | Suggests kebab-case Portuguese tags for semantic indexing |
+| **Criticality suggestion** | Proposes urgency level with explainable justification |
+| **Graph expansion** | Linked documents retrieved via wikilinks injected into context |
+
+The system is configured via `.env` and scales from `gemma4:e2b` (2B, CPU-only) to `gemma4:27b` without any code changes.
+
+---
+
+## Key Technical Decisions
+
+### 1. Deferred Embedding — The Quality Gate
+
+Tickets are saved to SQLite and disk immediately, but **not embedded into ChromaDB** until a human administrator validates them:
+
+```
+Staff opens ticket
+      ↓
+SQLite ✓  +  .md on disk ✓  +  ChromaDB ✗
+      ↓
+Master validates (quality, relevance, no patient data)
+      ↓
+POST /api/chamados/{id}/validar
+      ↓
+Chunk → embed (qwen3-embedding:0.6b) → ChromaDB ✓
+      ↓
+RAG active: next queries return this context
+```
+
+A poorly described ticket stays out of the RAG permanently. The Master is the quality gate of what the AI learns.
+
+### 2. Cosine Distance Threshold — Eliminating Citation Hallucination
+
+The system uses **qwen3-embedding:0.6b** (Matryoshka, truncated to 1024 dims) with a cosine distance threshold of **0.45**:
+
+```
+dist < 0.45 → chunk is relevant → injected into context
+dist ≥ 0.45 → chunk is discarded → model says "no similar cases found"
+```
+
+Real-world calibration on Portuguese-language hospital queries revealed a natural gap between relevant chunks (0.21–0.42) and irrelevant ones (0.57–0.62). Setting the threshold at 0.45 eliminates the zone where hallucination occurs — the model only cites sources that genuinely exist and are semantically close to the query.
+
+Without this threshold, Gemma 4 generates citations like `[Boas Práticas — Bomba de Infusão]` for documents that do not exist. With the threshold, it correctly states "I did not find similar cases in the knowledge base."
+
+### 3. Document-Level Graph Expansion via Wikilinks
+
+Standard RAG retrieves documents by vector similarity alone. 3Notes.AI adds a **2-hop graph expansion** step after the initial vector search:
+
+```
+Query → vector search → [CHM-0059, CHM-0022, ...]
+                              ↓
+           CHM-0059 contains [[CHM-0021]], [[CHM-0004]]
+                              ↓
+           Fetch CHM-0021 and CHM-0004 from disk
+                              ↓
+           Inject as additional context: "(Via grafo — CHM-0021)"
+```
+
+When a technician resolves a ticket via the Dashboard, the system automatically identifies related cases via RAG and writes Obsidian-style wikilinks (`[[CHM-YYYY-NNNN]]`) into the `.md` resolution section. These links are later traversed during retrieval.
+
+This approach retrieves institutionally relevant documents even when they are **semantically distant** from the query — addressing a structural limitation of pure vector similarity. It aligns with emerging research on source-level explainability in KG-augmented RAG systems (Li et al., XGRAG, 2025).
+
+### 4. Source-Level Explainability
+
+Every copilot response includes source cards showing which `.md` file and text snippet grounded the answer. This is not a decorative UI element — it is the primary trust mechanism for hospital staff who need to audit AI suggestions before acting on them.
+
+```
+"The E05 alarm indicates sensor occlusion [CHM-2026-0021].
+ Clean with enzymatic solution and recalibrate to 150 mmHg."
+              ↓
+📎 Sources consulted
+┌──────────────────────────────────────┐
+│ CHM-2026-0021 Fresenius Agilia       │
+│ "Bomba de infusão com alarme E05 de  │
+│ oclusão contínuo. Sensor obstruído   │
+│ por resíduo cristalizado..."         │
+└──────────────────────────────────────┘
+```
+
+This design principle — **AI suggests, human decides** — is enforced at every layer: criticality is always confirmable, citations are always traceable, and the Master validates what the AI learns.
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                         3Notes.AI                            │
+│                                                              │
+│  ┌─────────────┐   ┌──────────────────┐   ┌──────────────┐  │
+│  │  App 1      │   │  App 2           │   │  App 3       │  │
+│  │  Reporter   │   │  Dashboard       │   │  Master      │  │
+│  │  (Mobile)   │   │  (Technician)    │   │  (Admin)     │  │
+│  └──────┬──────┘   └────────┬─────────┘   └──────┬───────┘  │
+│         └─────── FastAPI REST API ────────────────┘          │
+│                       │                                      │
+│             ┌─────────┴──────────┐                           │
+│             │  SQLite + .md      │  ChromaDB (HNSW cosine)   │
+│             │  Knowledge Store   │  68 chunks · 1024-dim     │
+│             └────────────────────┘                           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Tech stack:**
+
+| Component | Technology |
+|---|---|
+| LLM | Gemma 4 via Ollama (`gemma4:e2b`, configurable) |
+| Embeddings | `qwen3-embedding:0.6b` — Matryoshka 1024-dim, multilingual |
+| Vector store | ChromaDB (persistent, HNSW cosine) |
+| Backend | Python 3.12 + FastAPI + Uvicorn |
+| Database | SQLite + SQLModel |
+| Knowledge graph | D3.js v7 force-directed (90 nodes, 364 edges) |
+| Frontend | HTML + Vanilla JS (no frameworks) |
+| Infrastructure | Local Linux — no Docker, no GPU |
+
+---
+
+## Knowledge Base State
+
+| Type | Count |
+|---|---|
+| Resolved tickets in RAG | 53 |
+| Equipment types simulated | 12 |
+| Curated protocols indexed | 4 |
+| Technical manuals indexed | 1 |
+| Total ChromaDB chunks | 68 |
+| Knowledge graph nodes | 90 |
+| Knowledge graph edges | 364 |
+
+---
+
+## Hardware — Running on What Hospitals Already Have
+
+Validated on a Dell Optiplex 3080 — the kind of machine found in hospital administrative offices:
+
+| Component | Spec |
+|---|---|
+| CPU | Intel Core i5-10500 |
+| RAM | 16 GB |
+| GPU | **None (CPU only)** |
+| OS | Ubuntu 24.04.4 LTS |
+| LLM | gemma4:e2b — 7.2 GB RAM |
+| Embeddings | qwen3-embedding:0.6b — 639 MB RAM |
+
+Response time per query: 15–45 seconds (CPU inference). Acceptable for maintenance workflows where a technician expects to wait for a consultation.
+
+> Larger models (`gemma4:27b`) produce better citation accuracy. The system scales without code changes — just update `THREENNOTES_MODEL` in `.env`.
+
+---
+
+## Responsible AI Design
+
+- **AI suggests, human decides** — criticality is always confirmable and auditable
+- **Privacy-first** — no data leaves the hospital network (LGPD compliant)
+- **RAG, not fine-tuning** — Gemma 4 stays intact; knowledge lives in `.md` files
+- **Quality gate** — Master validates what enters the RAG; low-quality data is permanently excluded
+- **Threshold filtering** — prevents citation hallucination
+- **Explainable citations** — every suggestion cites the specific source file and snippet
+
+---
+
+## Results and Validation
+
+The system was validated with 53 simulated historical maintenance tickets across 12 equipment types (ventilators, infusion pumps, monitors, defibrillators, autoclaves, X-ray equipment, oximeters).
+
+**RAG quality test** — query: *"alarme E05 bomba de infusão"*
+- Retrieved: CHM-2026-0021 (dist=0.215), CHM-2026-0004 (dist=0.270), CHM-2026-0022 (dist=0.285)
+- Discarded: unrelated documents (dist > 0.57)
+- Hallucinated citations: **zero**
+
+**Graph expansion test** — query: *"bomba com equipo genérico incompatível padronização Fresenius"*
+- Direct vector hit: CHM-2026-0059 (recurrence/standardization case)
+- Via wikilink expansion: CHM-2026-0021 (original E05 sensor case)
+- Both cited correctly in response with no hallucination
+
+**Knowledge graph** — 90 nodes (12 equipment hubs + 53 resolved tickets + 25 protocols/manuals) connected by 364 edges. Equipment clusters reveal recurring problem patterns invisible in flat lists.
+
+---
+
+## Roadmap
+
+- **v1.0 — Hackathon:** Text + RAG + `.md` + ChromaDB + Knowledge Graph (this version)
+- **v1.1:** Multimodal — images in `.md`, visual equipment analysis with Gemma 4 vision
+- **v1.2:** AGHU integration (Brazilian federal hospital system API)
+- **v1.3:** Generic product — 3Notes.AI for any knowledge domain
+- **v2.0:** Bulk import — index existing institutional `.md` files directly from disk
+
+---
+
+## Conclusion
+
+3Notes.AI demonstrates that Gemma 4 can power a production-grade knowledge management system on hospital-grade hardware — no cloud, no GPU, no internet. The institutional knowledge that disappears every time a technician changes shifts is now captured, validated, and retrievable. Every resolved ticket makes the next one faster.
+
+---
+
+*Luiz Filipe Pereira Nunes · NCam Tecnologia Industrial · April–May 2026*
+*Gemma 4 Good Hackathon · CC-BY 4.0*

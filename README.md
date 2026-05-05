@@ -1,13 +1,14 @@
 # 3Notes.AI — Intelligent Knowledge System for Hospital Maintenance
 
 > **"Every resolved ticket makes the next one faster."**
-> Gemma 4 Good Hackathon · Kaggle × Google DeepMind · CC-BY 4.0
+>
+> Gemma 4 Good Hackathon · Kaggle × Google DeepMind · [CC-BY 4.0](LICENSE)
 
 ---
 
 ## The Problem
 
-Brazilian public hospitals have over **43,000 medical devices out of service** due to lack of maintenance management (source: CNES/Ministry of Health). Maintenance today is managed with paper notebooks or spreadsheets — no tracking, no history, no preventive scheduling. Critical equipment like ventilators and autoclaves fail without warning.
+Brazilian public hospitals have over **43,000 medical devices out of service** due to lack of maintenance management (source: CNES/Ministry of Health). Maintenance is managed with paper notebooks or spreadsheets — no history, no pattern recognition, no institutional memory.
 
 Worse: **institutional knowledge disappears** with every shift change or staff departure. The technician who fixed that ventilator three times last year? When they leave, the hospital loses everything they learned.
 
@@ -15,11 +16,9 @@ Worse: **institutional knowledge disappears** with every shift change or staff d
 
 ## The Solution
 
-**3Notes.AI** is a three-role knowledge management system for hospital maintenance, powered by RAG (Retrieval-Augmented Generation) with Gemma 4. Every interaction generates a structured `.md` file that feeds the knowledge base — **the system learns and improves with every resolved ticket**, inspired by Google's NotebookLM architecture and Obsidian's interconnected note philosophy.
+**3Notes.AI** is a three-role knowledge management system for hospital maintenance, powered by RAG with Gemma 4. Every interaction generates a structured `.md` file that feeds the knowledge base — **the system learns and improves with every resolved ticket**, inspired by Google's NotebookLM and Obsidian's interconnected note philosophy.
 
-### The Name: Why "3Notes"
-
-The name reflects the three types of notes the system generates:
+### Why "3Notes"
 
 ```
         [Master — Note 3]
@@ -30,15 +29,15 @@ The name reflects the three types of notes the system generates:
   "What happened"       "What worked"
 ```
 
-- **Note 1 (Reporter):** The staff member describes the problem. Documents *what happened*.
-- **Note 2 (Dashboard):** The technician documents root cause and resolution. Documents *what worked*.
-- **Note 3 (Master):** Manuals, protocols, curated docs. Documents *what should be done*.
-
-Together, the three notes form a knowledge base that learns from every occurrence and never loses accumulated expertise — even with staff turnover.
+| Note | Role | Documents |
+|---|---|---|
+| **Note 1 — Reporter** | Staff member describes the problem via AI chat | *What happened* |
+| **Note 2 — Dashboard** | Technician documents root cause and resolution | *What worked* |
+| **Note 3 — Master** | Admin validates knowledge and manages curated docs | *What should be done* |
 
 ---
 
-### Architecture: 3 Apps
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -52,7 +51,6 @@ Together, the three notes form a knowledge base that learns from every occurrenc
 │  │  Chat + .md │   │  Queue + Metrics │   │  Validation  │  │
 │  │  generation │   │  RAG copilot     │   │  + Curation  │  │
 │  └──────┬──────┘   └────────┬─────────┘   └──────┬───────┘  │
-│         │                  │                     │           │
 │         └─────── FastAPI REST API ────────────────┘           │
 │                       │                                      │
 │             ┌─────────┴─────────┐                            │
@@ -60,50 +58,6 @@ Together, the three notes form a knowledge base that learns from every occurrenc
 │             │  Knowledge Store  │  68 chunks · 1024-dim      │
 │             └───────────────────┘                            │
 └──────────────────────────────────────────────────────────────┘
-```
-
-**App 1 — Reporter (mobile-first):** Staff reports problems via AI chat. The AI conducts the conversation, collects structured data, and generates a `.md` file with a unique title, suggested tags, and criticality — visible in an Obsidian-style preview before confirmation.
-
-**App 2 — Dashboard (desktop-first):** Technicians manage the ticket queue, preventive schedule, and metrics. A floating AI copilot retrieves relevant past cases and cites them with `[CHM-YYYY-NNNN]` IDs. Resolutions are saved as `.md` and re-indexed in ChromaDB.
-
-**App 3 — Master (admin):** The quality gate. Validates which tickets enter the RAG knowledge base (deferred embedding). Manages curated documents (manuals, protocols). Includes a D3.js force-directed knowledge graph showing clusters of interconnected notes — Obsidian-style.
-
----
-
-## Deferred Embedding — The Key Design Decision
-
-```
-Staff opens ticket
-      ↓
-Saved to SQLite ✓  +  .md saved to disk ✓  +  ChromaDB ✗
-      ↓
-Master validates (checks quality, relevance, clinical accuracy)
-      ↓
-POST /api/chamados/{id}/validar
-      ↓
-Chunk → embed (qwen3-embedding:0.6b) → ChromaDB ✓
-      ↓
-RAG active: next copilot queries return this context
-```
-
-**The Master is the quality gate of what the AI learns.** A poorly described ticket stays out of the RAG — it remains in SQL and can be resolved normally, but does not contaminate the knowledge base.
-
----
-
-## The Knowledge Cycle
-
-```
-Ticket opened         Ticket resolved         Next ticket
-     │                      │                      │
-     ▼                      ▼                      ▼
-Chat with AI ──────▶ .md saved ─────────▶ ChromaDB indexes
-                     with resolution        │
-                                            ▼
-                                     AI retrieves context
-                                     and cites the source:
-                                     "[CHM-2026-0021] — E05
-                                      alarm: enzymatic cleaning
-                                      + recalibration 150 mmHg"
 ```
 
 ---
@@ -115,23 +69,39 @@ Gemma 4 is the **central intelligence** of 3Notes.AI — not decorative:
 | Function | How Gemma 4 is used |
 |---|---|
 | **Conversational intake** | Conducts structured chat to collect ticket data without forms |
-| **RAG-powered copilot** | Retrieves relevant `.md` context from ChromaDB before answering |
+| **RAG copilot** | Retrieves relevant `.md` context from ChromaDB before answering |
 | **Source citation** | Cites previous cases as `[CHM-2026-0021]` or `[Document Name]` |
 | **Title generation** | Creates concise, descriptive titles for each `.md` note |
 | **Tag suggestion** | Suggests kebab-case PT tags for semantic indexing |
 | **Criticality suggestion** | Proposes urgency level with explainable justification |
-| **Fallback support** | Auto-switches between available models via Ollama |
+
+The system scales from `gemma4:e2b` (2B params, CPU-only) to `gemma4:27b` without any code changes — just update `THREENNOTES_MODEL` in `.env`.
 
 ---
 
-## RAG Architecture — Quality over Quantity
+## Key Design Decisions
 
-The system uses **qwen3-embedding:0.6b** (Matryoshka, truncated to 1024 dims) with a **cosine distance threshold of 0.45**:
+### Deferred Embedding — The Quality Gate
 
-- Distance < 0.45 → chunk is relevant → injected into context
-- Distance ≥ 0.45 → chunk is discarded → model says "no similar cases found"
+```
+Staff opens ticket
+      ↓
+SQLite ✓  +  .md saved to disk ✓  +  ChromaDB ✗
+      ↓
+Master validates (quality, relevance, no patient data)
+      ↓
+POST /api/chamados/{id}/validar
+      ↓
+Chunk → embed (qwen3-embedding:0.6b) → ChromaDB ✓
+      ↓
+RAG active: next copilot queries return this context
+```
 
-This threshold eliminates citation hallucination: the model only cites sources that actually exist and are semantically close to the query. Real-world calibration showed a natural gap between relevant chunks (0.21–0.42) and irrelevant ones (0.57–0.62).
+**The Master is the quality gate of what the AI learns.** A poorly described ticket stays out of the RAG — it remains in SQL and can be resolved normally, but does not contaminate the knowledge base.
+
+### Cosine Distance Threshold — No Hallucination
+
+Cosine distance threshold of **0.45** filters irrelevant chunks before injection:
 
 ```
 "pump occlusion alarm"
@@ -140,10 +110,44 @@ qwen3-embedding:0.6b (1024-dim, 32K context, multilingual)
         │
 ChromaDB HNSW cosine search
         │
-dist=0.215 → CHM-2026-0021 ✅  injected
-dist=0.270 → CHM-2026-0022 ✅  injected
-dist=0.285 → CHM-2026-0004 ✅  injected
+dist=0.215 → CHM-2026-0021 ✅  injected into context
+dist=0.270 → CHM-2026-0004 ✅  injected into context
 dist=0.571 → unrelated doc  ❌  discarded
+```
+
+Empirical calibration on PT-BR hospital queries found a natural gap: relevant chunks score 0.21–0.42, irrelevant ones 0.57–0.62. The threshold eliminates citation hallucination — the model only cites sources that genuinely exist and are semantically close.
+
+### Graph Expansion via Wikilinks
+
+After the initial vector search, the system follows `[[CHM-YYYY-NNNN]]` wikilinks embedded in retrieved `.md` files — a 2-hop graph expansion that surfaces institutionally relevant documents even when semantically distant from the query:
+
+```
+Query → vector search → CHM-0059 (recurrence case)
+                              ↓
+             CHM-0059 contains [[CHM-0021]], [[CHM-0004]]
+                              ↓
+             Inject CHM-0021 and CHM-0004 into context
+             even if they didn't appear in the top-k results
+```
+
+When a technician resolves a ticket, the system automatically identifies related cases via RAG and writes Obsidian-style wikilinks into the `.md` resolution section. These links are traversed in future retrievals.
+
+---
+
+## The Knowledge Cycle
+
+```
+Ticket opened           Ticket resolved           Next ticket
+     │                        │                        │
+     ▼                        ▼                        ▼
+Chat with AI ──────▶  .md saved with  ──────▶  ChromaDB indexes
+                      resolution +               │
+                      wikilinks                  ▼
+                                          AI retrieves context
+                                          and cites the source:
+                                          "[CHM-2026-0021] — E05
+                                           alarm: enzymatic cleaning
+                                           + recalibration 150 mmHg"
 ```
 
 ---
@@ -175,11 +179,10 @@ Tested and validated on:
 | RAM | **16 GB** |
 | GPU | **None (CPU only)** |
 | OS | Ubuntu 24.04.4 LTS |
-| LLM | gemma4:e2b (2B params, 7.2 GB RAM) |
-| Embed | qwen3-embedding:0.6b (639 MB RAM) |
+| LLM active | gemma4:e2b (2B params, ~7.2 GB RAM) |
+| Embed active | qwen3-embedding:0.6b (~639 MB RAM) |
 
-> If more RAM is available, larger models (gemma4:27b) produce better citation accuracy.
-> The system scales from 2B to 27B without any code changes — just update `THREENNOTES_MODEL` in `.env`.
+> If more RAM is available, `gemma4:27b` produces better citation accuracy with no code changes.
 
 ---
 
@@ -189,8 +192,11 @@ Tested and validated on:
 
 - Python 3.12+
 - [Ollama](https://ollama.com) installed and running
-- LLM model: `ollama pull gemma4:e2b` (or any available gemma4 variant)
-- Embedding model: `ollama pull qwen3-embedding:0.6b`
+- Models pulled:
+  ```bash
+  ollama pull gemma4:e2b
+  ollama pull qwen3-embedding:0.6b
+  ```
 
 ### Installation
 
@@ -199,7 +205,7 @@ git clone https://github.com/Luiznunes13/3notes
 cd 3notes
 
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 pip install -r requirements.txt
 
@@ -210,33 +216,33 @@ cp .env.example .env
 ### Seed demo data
 
 ```bash
-# Base data: 8 equipment, 10 tickets, 2 manuals, 1 protocol
+# Base: 8 equipment types, 10 tickets, curated protocols
 python scripts/seed_demo.py
 
-# Realistic volume: 53 resolved historical tickets (validates RAG quality)
+# Volume: 53 resolved historical tickets (validates RAG quality)
 python scripts/seed_volume.py
 ```
 
 > ChromaDB indexing requires Ollama running with `qwen3-embedding:0.6b`.
-> If Ollama is unavailable, the seed skips indexing gracefully — all SQL data is still created.
+> If Ollama is unavailable, the seed skips ChromaDB gracefully — SQL data is still created.
 
 ### Start the server
 
 ```bash
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Accessing the apps
+### Access the apps
 
-| App | URL |
-|---|---|
-| Reporter (staff) | http://localhost:8000/static/reporter.html |
-| Dashboard (technician) | http://localhost:8000/static/dashboard.html |
-| Master (admin) | http://localhost:8000/static/admin.html |
-| API Docs | http://localhost:8000/docs |
-| Health check | http://localhost:8000/health |
+| App | URL | Role |
+|---|---|---|
+| Reporter | http://localhost:8000/static/reporter.html | Staff (mobile-first) |
+| Dashboard | http://localhost:8000/static/dashboard.html | Technician |
+| Master | http://localhost:8000/static/admin.html | Administrator |
+| API Docs | http://localhost:8000/docs | — |
+| Health | http://localhost:8000/health | — |
 
-**Master login:** `admin123`
+**Master login password:** `admin123`
 
 ---
 
@@ -260,23 +266,25 @@ resolvido_em: 2026-04-17T12:45:00
 
 ## Problema
 Alarme E05 de oclusão contínuo. Equipamento não infunde medicação.
-Paciente em sedação contínua dependente da bomba.
 
 ## Resolução
-Causa raiz: sensor de oclusão obstruído por resíduo cristalizado.
-Procedimento: limpeza enzimática + recalibração (150 mmHg).
-Equipo descartável substituído.
+Sensor de oclusão obstruído por resíduo cristalizado.
+Limpeza enzimática + recalibração (150 mmHg). Equipo substituído.
+
+## Chamados relacionados
+- [[CHM-2026-0004]]
+- [[CHM-2026-0027]]
 ```
 
 1. **Human-readable** — any technician can open and understand it
 2. **ChromaDB-indexable** — vector embeddings for semantic RAG
-3. **SQL-parseable** — YAML frontmatter feeds the relational database
+3. **Graph-traversable** — wikilinks enable 2-hop retrieval expansion
 
 ---
 
 ## Knowledge Graph
 
-The Master panel includes a D3.js force-directed knowledge graph showing:
+The Master panel includes a D3.js force-directed knowledge graph:
 - **Equipment nodes** (violet/large) — hubs connecting related tickets
 - **Resolved tickets** (green/small) — connected to their equipment
 - **Protocols & manuals** (amber/cyan) — float between clusters by shared tags
@@ -289,15 +297,15 @@ With 53 simulated tickets across 12 equipment types, the graph reveals clusters 
 ## Responsible AI Design
 
 - **AI suggests, human decides** — criticality is always confirmable and auditable
-- **Explainable citations** — every suggestion includes `[CHM-ID]` source reference with snippet
-- **Privacy-first** — no data leaves the hospital network (LGPD compliance)
+- **Explainable citations** — every suggestion shows `[CHM-ID]` with source snippet
+- **Privacy-first** — no data leaves the hospital network (LGPD compliant)
 - **RAG, not fine-tuning** — Gemma 4 stays intact; knowledge lives in `.md` files
-- **Threshold filtering** — prevents citation hallucination (cosine distance > 0.45 = discarded)
 - **Quality gate** — Master validates what enters the RAG; bad data never trains the AI
+- **Threshold filtering** — cosine distance > 0.45 discards irrelevant chunks
 
 ---
 
-## API Endpoints
+## API Reference
 
 ```
 GET  /health
@@ -340,19 +348,16 @@ GET    /api/knowledge/grafo
 
 ## Roadmap
 
-- **v1.0 — Hackathon:** Text + RAG + `.md` + ChromaDB + Knowledge Graph (this version)
-- **v1.1:** Multimodal support (images in `.md`, visual equipment analysis)
+- **v1.0 — Hackathon:** Text + RAG + `.md` + ChromaDB + Knowledge Graph *(this version)*
+- **v1.1:** Multimodal support — images in `.md`, visual equipment analysis
 - **v1.2:** AGHU integration (Brazilian federal hospital system)
 - **v1.3:** Generic product — 3Notes.AI for any knowledge domain
-  - Free: personal, local, unlimited
-  - Pro: sync across devices
-  - Enterprise: teams, shared knowledge base
 - **v2.0:** Bulk import — index `.md` files directly from disk
 
 ---
 
 ## License
 
-[CC-BY 4.0](LICENSE) — Luiz Filipe Pereira Nunes · NCam Tecnologia Industrial · April 2026
+[CC-BY 4.0](LICENSE) — Luiz Filipe Pereira Nunes · NCam Tecnologia Industrial · 2026
 
-Gemma 4 Good Hackathon submission — Kaggle × Google DeepMind
+*Gemma 4 Good Hackathon submission — Kaggle × Google DeepMind*
