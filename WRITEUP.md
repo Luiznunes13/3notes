@@ -5,6 +5,9 @@
 
 ## Overview
 
+> **Demo Video:** https://youtu.be/ie8giX1T0lE
+> **Repository:** https://github.com/Luiznunes13/3notes
+
 **3Notes.AI** is a knowledge management system for hospital maintenance teams in Brazilian public hospitals. Every resolved maintenance ticket generates a structured `.md` file that is embedded into a vector knowledge base — making the system smarter with every interaction. Built entirely on local infrastructure with no GPU required, it demonstrates that Gemma 4 can deliver real institutional value in resource-constrained environments.
 
 ---
