@@ -358,6 +358,6 @@ GET    /api/knowledge/grafo
 
 ## License
 
-[CC-BY 4.0](LICENSE) — Luiz Filipe Pereira Nunes · NCam Tecnologia Industrial · 2026
+[CC-BY 4.0](LICENSE) — Luiz Filipe Pereira Nunes · 2026
 
 *Gemma 4 Good Hackathon submission — Kaggle × Google DeepMind*

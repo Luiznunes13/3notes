@@ -104,7 +104,7 @@ class OllamaService:
             user_messages = [m for m in messages if m["role"] == "user"]
             if user_messages:
                 last_user_msg = user_messages[-1]["content"]
-                contextos = await rag_service.buscar_contexto(last_user_msg, n_resultados=2)
+                contextos = await rag_service.buscar_contexto(last_user_msg, n_resultados=3)
                 if contextos:
                     rag_context = (
                         "CONTEXTO RELEVANTE (base de conhecimento do hospital):\n"

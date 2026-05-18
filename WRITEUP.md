@@ -243,5 +243,5 @@ The system was validated with 53 simulated historical maintenance tickets across
 
 ---
 
-*Luiz Filipe Pereira Nunes · NCam Tecnologia Industrial · April–May 2026*
+*Luiz Filipe Pereira Nunes · April–May 2026*
 *Gemma 4 Good Hackathon · CC-BY 4.0*
